@@ -1,5 +1,5 @@
 # pidorator bot
-Фановый дискорд бот. Описание временное, не финальное
+Фановый дискорд бот. Вдохновлено [discord pidor bot](https://github.com/lehadnk/discord-pidor-bot). Описание временное, будет дополнено позже
 
 ## В чем смысл?
 just for fun
