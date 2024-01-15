@@ -1,0 +1,26 @@
+package postgresql
+
+import (
+	"context"
+
+	"github.com/rs/zerolog"
+)
+
+type Database struct {
+	//c   *.Client
+	log *zerolog.Logger
+}
+
+func New(ctx context.Context, log *zerolog.Logger) Database {
+	result := Database{log: log}
+
+	return result
+}
+
+func (DB *Database) NewConnection(ctx context.Context) error {
+
+	return nil
+}
+
+func (DB *Database) Disconnect(ctx context.Context) {
+}
