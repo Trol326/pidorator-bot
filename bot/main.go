@@ -21,14 +21,13 @@ type Client struct {
 	Log     *zerolog.Logger
 }
 
-func New() (Client, error) {
-	ctx := context.Background()
+func New(ctx context.Context) (Client, error) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC822}
 	log := zerolog.New(consoleWriter).With().Timestamp().Logger()
 
 	develop := os.Getenv("DEVELOP")
-	if develop != "" {
+	if develop == "True" || develop == "true" {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("develop")
 	}
@@ -55,15 +54,17 @@ func New() (Client, error) {
 	return client, nil
 }
 
-func (c *Client) Start() {
+func (c *Client) Start(ctx context.Context) {
 	c.Session.Open()
 	defer c.Session.Close()
-	defer c.DB.Disconnect()
+	defer c.DB.Disconnect(ctx)
 
 	c.Log.Info().Msg("Bot is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
+
+	c.Log.Info().Msg("Bot is shutting down...")
 }
 
 func (c *Client) InitHandlers() {

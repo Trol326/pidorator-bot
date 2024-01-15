@@ -3,6 +3,6 @@ package database
 import "context"
 
 type Database interface {
-	NewConnection(ctx context.Context) error
-	Disconnect()
+	NewConnection(context.Context) error
+	Disconnect(context.Context)
 }

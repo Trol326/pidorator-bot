@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"pidorator-bot/bot"
@@ -9,6 +10,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	absPath, err := filepath.Abs(".env")
 	if err != nil {
 		fmt.Printf("Error on path to .env creation, %s\n", err)
@@ -18,12 +21,12 @@ func main() {
 		fmt.Printf("Cannot read .env: %s\n", err)
 	}
 
-	b, err := bot.New()
+	b, err := bot.New(ctx)
 	if err != nil {
 		fmt.Printf("Error. Can't create client: %s", err)
 		return
 	}
 
 	b.InitHandlers()
-	b.Start()
+	b.Start(ctx)
 }

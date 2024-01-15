@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/rs/zerolog"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,10 +21,8 @@ func New(ctx context.Context, log *zerolog.Logger) Database {
 	result := Database{log: log}
 
 	err := result.NewConnection(ctx)
-
 	if err != nil {
 		log.Error().Msgf("Error. Can't connect to database. err = %s", err)
-		return Database{}
 	}
 
 	return result
@@ -38,29 +37,37 @@ func (DB *Database) NewConnection(ctx context.Context) error {
 	uri := fmt.Sprintf("mongodb://%s:%s@%s", username, password, adress)
 	clientOptions := options.Client().ApplyURI(uri)
 
-	client, err := mongo.Connect(ctx, clientOptions)
+	connCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(connCtx, clientOptions)
 	if err != nil {
 		return err
 	}
 
 	// Check the connection
-	err = client.Ping(ctx, nil)
+	err = client.Ping(connCtx, nil)
 	if err != nil {
 		return err
 	}
+
+	DB.c = client
 
 	DB.log.Info().Msg("Connected to MongoDB!")
 
 	return nil
 }
 
-func (DB *Database) Disconnect() {
-	err := DB.c.Disconnect(context.TODO())
-
+func (DB *Database) Disconnect(ctx context.Context) {
+	if DB.c == nil {
+		DB.log.Error().Msgf("Error. Database client not found")
+		return
+	}
+	err := DB.c.Disconnect(ctx)
 	if err != nil {
 		DB.log.Error().Msgf("Error. Can't disconnect from database. err = %s", err)
 		return
 	}
 
-	fmt.Println("Connection to MongoDB closed.")
+	DB.log.Debug().Msg("Connection to MongoDB is also closed.")
 }
