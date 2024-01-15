@@ -1,10 +1,13 @@
 package bot
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"pidorator-bot/bot/trigger"
+	"pidorator-bot/database"
+	"pidorator-bot/database/mongodb"
 	"syscall"
 	"time"
 
@@ -14,10 +17,12 @@ import (
 
 type Client struct {
 	Session *discordgo.Session
+	DB      database.Database
 	Log     *zerolog.Logger
 }
 
 func New() (Client, error) {
+	ctx := context.Background()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC822}
 	log := zerolog.New(consoleWriter).With().Timestamp().Logger()
@@ -39,8 +44,11 @@ func New() (Client, error) {
 		return Client{}, err
 	}
 
+	db := mongodb.New(ctx, &log)
+
 	client := Client{
 		Session: s,
+		DB:      &db,
 		Log:     &log,
 	}
 
@@ -50,6 +58,7 @@ func New() (Client, error) {
 func (c *Client) Start() {
 	c.Session.Open()
 	defer c.Session.Close()
+	defer c.DB.Disconnect()
 
 	c.Log.Info().Msg("Bot is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
