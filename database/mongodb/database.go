@@ -36,11 +36,14 @@ func (DB *Database) NewConnection(ctx context.Context) error {
 	// format: mongodb://login:password@adress
 	uri := fmt.Sprintf("mongodb://%s:%s@%s", username, password, adress)
 	clientOptions := options.Client().ApplyURI(uri)
+	nameOpt := options.Client().SetAppName("Pidorator-bot")
 
+	// TODO check which one is more efficient/secure
+	timeoutOpt := options.Client().SetTimeout(25 * time.Second)
 	connCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(connCtx, clientOptions)
+	client, err := mongo.Connect(connCtx, clientOptions, nameOpt, timeoutOpt)
 	if err != nil {
 		return err
 	}
