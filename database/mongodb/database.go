@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"pidorator-bot/database"
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -73,4 +75,51 @@ func (DB *Database) Disconnect(ctx context.Context) {
 	}
 
 	DB.log.Debug().Msg("Connection to MongoDB is also closed.")
+}
+
+func (DB *Database) GetAllPlayers(ctx context.Context) ([]*database.GameData, error) {
+	c := DB.c.Database("discord-bot").Collection("pidorator-game")
+
+	findOptions := options.Find()
+
+	var results []*database.GameData
+
+	cur, err := c.Find(ctx, bson.D{{}}, findOptions)
+	if err != nil {
+		DB.log.Error().Err(err)
+		return []*database.GameData{}, err
+	}
+	defer cur.Close(ctx)
+
+	for cur.Next(ctx) {
+		var elem database.GameData
+		err := cur.Decode(&elem)
+		if err != nil {
+			DB.log.Error().Err(err)
+		}
+		results = append(results, &elem)
+	}
+	if err := cur.Err(); err != nil {
+		DB.log.Error().Err(err)
+		return []*database.GameData{}, err
+	}
+
+	DB.log.Debug().Msgf("Found multiple documents (array of pointers): %+v\n", results)
+
+	return results, nil
+}
+
+func (DB *Database) IncreaseUserScore(ctx context.Context, guildID string, userID string) error {
+	c := DB.c.Database("discord-bot").Collection("pidorator-game")
+	filter := bson.D{{Key: "userID", Value: userID}, {Key: "guildID", Value: guildID}}
+	update := bson.D{{Key: "$inc", Value: bson.D{{Key: "score", Value: 1}}}}
+
+	result, err := c.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	DB.log.Debug().Msgf("Matched %v documents and updated %v documents.\n", result.MatchedCount, result.ModifiedCount)
+
+	return nil
 }

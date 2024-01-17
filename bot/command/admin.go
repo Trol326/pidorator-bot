@@ -1,11 +1,15 @@
 package command
 
 import (
+	"context"
 	"fmt"
+
+	"github.com/bwmarrin/discordgo"
 )
 
-func (c *Commands) BotRename() {
+// TODO make some functionality
+func (c *Commands) BotRename(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
 	c.log.Debug().Msg("commands.botrename triggered")
-	text := fmt.Sprintf("Ты пидор, %s <:MumeiYou:1192139708222935050>", c.message.Author.Mention())
-	c.discord.ChannelMessageSend(c.message.ChannelID, text)
+	text := fmt.Sprintf("Ты пидор, %s <:MumeiYou:1192139708222935050>", message.Author.Mention())
+	discord.ChannelMessageSend(message.ChannelID, text)
 }

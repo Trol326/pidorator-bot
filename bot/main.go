@@ -68,7 +68,7 @@ func (c *Client) Start(ctx context.Context) {
 }
 
 func (c *Client) InitHandlers() {
-	t := trigger.New(c.Log)
+	t := trigger.New(c.Log, c.DB)
 
 	c.Session.AddHandler(t.OnNewMessage)
 }
