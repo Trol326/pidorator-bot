@@ -77,16 +77,20 @@ func (DB *Database) Disconnect(ctx context.Context) {
 	DB.log.Debug().Msg("Connection to MongoDB is also closed.")
 }
 
-func (DB *Database) GetAllPlayers(ctx context.Context) ([]*database.GameData, error) {
+func (DB *Database) GetAllPlayers(ctx context.Context, guildID string) ([]*database.GameData, error) {
+	if DB.c == nil {
+		err := fmt.Errorf("error. Database client not found")
+		return []*database.GameData{}, err
+	}
+
 	c := DB.c.Database("discord-bot").Collection("pidorator-game")
 
-	findOptions := options.Find()
+	findOptions := options.Find().SetSort(bson.D{{Key: "score", Value: -1}})
 
 	var results []*database.GameData
 
-	cur, err := c.Find(ctx, bson.D{{}}, findOptions)
+	cur, err := c.Find(ctx, bson.D{{Key: "guildID", Value: guildID}}, findOptions)
 	if err != nil {
-		DB.log.Error().Err(err)
 		return []*database.GameData{}, err
 	}
 	defer cur.Close(ctx)
@@ -100,16 +104,20 @@ func (DB *Database) GetAllPlayers(ctx context.Context) ([]*database.GameData, er
 		results = append(results, &elem)
 	}
 	if err := cur.Err(); err != nil {
-		DB.log.Error().Err(err)
 		return []*database.GameData{}, err
 	}
 
-	DB.log.Debug().Msgf("Found multiple documents (array of pointers): %+v\n", results)
+	DB.log.Debug().Msgf("Found multiple documents(%d). Array of pointers: %+v", len(results), results)
 
 	return results, nil
 }
 
 func (DB *Database) IncreaseUserScore(ctx context.Context, guildID string, userID string) error {
+	if DB.c == nil {
+		err := fmt.Errorf("error. Database client not found")
+		return err
+	}
+
 	c := DB.c.Database("discord-bot").Collection("pidorator-game")
 	filter := bson.D{{Key: "userID", Value: userID}, {Key: "guildID", Value: guildID}}
 	update := bson.D{{Key: "$inc", Value: bson.D{{Key: "score", Value: 1}}}}
@@ -120,6 +128,11 @@ func (DB *Database) IncreaseUserScore(ctx context.Context, guildID string, userI
 	}
 
 	DB.log.Debug().Msgf("Matched %v documents and updated %v documents.\n", result.MatchedCount, result.ModifiedCount)
+
+	return nil
+}
+
+func (DB *Database) UpdateUsersData(ctx context.Context, guildID string, data []*database.GameData) error {
 
 	return nil
 }
