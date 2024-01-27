@@ -3,7 +3,7 @@ module pidorator-bot
 go 1.19
 
 require (
-	github.com/bwmarrin/discordgo v0.27.1
+	github.com/bwmarrin/discordgo v0.27.2-0.20240104191117-afc57886f91a
 	github.com/joho/godotenv v1.5.1
 	github.com/rs/zerolog v1.31.0
 	go.mongodb.org/mongo-driver v1.13.1
