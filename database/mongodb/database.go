@@ -19,9 +19,10 @@ type Database struct {
 }
 
 const (
-	BotDBName          string = "discord-bot"
-	GameCollectionName string = "pidorator-game"
-	ErrorNotExist      string = "mongo: no documents in result"
+	BotDBName           string = "discord-bot"
+	GameCollectionName  string = "pidorator-game"
+	EventCollectionName string = "pidorator-events"
+	ErrorNotExist       string = "mongo: no documents in result"
 )
 
 func New(ctx context.Context, log *zerolog.Logger) Database {
@@ -114,6 +115,94 @@ func (DB *Database) AddPlayer(ctx context.Context, data *database.PlayerData) er
 	return nil
 }
 
+func (DB *Database) AddEvent(ctx context.Context, data *database.EventData) error {
+	if DB.c == nil {
+		err := fmt.Errorf("error. Database client not found")
+		return err
+	}
+
+	p, err := DB.FindEvent(ctx, data.GuildID, data.Type)
+	if err != nil && err.Error() != ErrorNotExist {
+		return err
+	}
+
+	if p.GuildID != "" {
+		err := fmt.Errorf(database.EventAlreadyExistError)
+		return err
+	}
+
+	c := DB.c.Database(BotDBName).Collection(EventCollectionName)
+
+	result, err := c.InsertOne(context.TODO(), data)
+	if err != nil {
+		return err
+	}
+
+	if result == nil {
+		err := fmt.Errorf("error. Event not added")
+		return err
+	}
+
+	DB.log.Debug().Msgf("Event added successfully: %v", result)
+
+	return nil
+}
+
+func (DB *Database) UpdateEvent(ctx context.Context, data *database.EventData) error {
+	if DB.c == nil {
+		err := fmt.Errorf("error. Database client not found")
+		return err
+	}
+
+	c := DB.c.Database(BotDBName).Collection(EventCollectionName)
+	filter := bson.D{{Key: "guildID", Value: data.GuildID}, {Key: "eventType", Value: data.Type}}
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "startTime", Value: data.StartTime}, {Key: "endTime", Value: data.EndTime}}}}
+
+	result, err := c.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	DB.log.Debug().Msgf("Matched %v documents and updated %v documents.\n", result.MatchedCount, result.ModifiedCount)
+
+	return nil
+}
+
+func (DB *Database) GetEvents(ctx context.Context, guildID string) ([]*database.EventData, error) {
+	if DB.c == nil {
+		err := fmt.Errorf("error. Database client not found")
+		return []*database.EventData{}, err
+	}
+
+	c := DB.c.Database(BotDBName).Collection(EventCollectionName)
+
+	findOptions := options.Find().SetSort(bson.D{{Key: "startTime", Value: -1}})
+
+	var results []*database.EventData
+
+	cur, err := c.Find(ctx, bson.D{{Key: "guildID", Value: guildID}}, findOptions)
+	if err != nil {
+		return []*database.EventData{}, err
+	}
+	defer cur.Close(ctx)
+
+	for cur.Next(ctx) {
+		var elem database.EventData
+		err := cur.Decode(&elem)
+		if err != nil {
+			DB.log.Error().Err(err)
+		}
+		results = append(results, &elem)
+	}
+	if err := cur.Err(); err != nil {
+		return []*database.EventData{}, err
+	}
+
+	DB.log.Debug().Msgf("Found multiple documents(%d). Array of pointers: %+v", len(results), results)
+
+	return results, nil
+}
+
 func (DB *Database) GetAllPlayers(ctx context.Context, guildID string) ([]*database.PlayerData, error) {
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
@@ -166,6 +255,30 @@ func (DB *Database) FindPlayer(ctx context.Context, guildID string, userID strin
 	if err != nil {
 		return &database.PlayerData{}, err
 	}
+	DB.log.Debug().Msgf("Player finded: %v", result)
+
+	return &result, nil
+}
+
+func (DB *Database) FindEvent(ctx context.Context, guildID string, eventType string) (*database.EventData, error) {
+	result := database.EventData{}
+	if DB.c == nil {
+		err := fmt.Errorf("error. Database client not found")
+		return &result, err
+	}
+
+	c := DB.c.Database(BotDBName).Collection(EventCollectionName)
+
+	findOptions := options.FindOne()
+
+	filter := bson.D{{Key: "guildID", Value: guildID}, {Key: "eventType", Value: eventType}}
+
+	err := c.FindOne(ctx, filter, findOptions).Decode(&result)
+	if err != nil {
+		return &database.EventData{}, err
+	}
+
+	DB.log.Debug().Msgf("Event finded: %v", result)
 
 	return &result, nil
 }
@@ -176,7 +289,7 @@ func (DB *Database) IncreasePlayerScore(ctx context.Context, guildID string, use
 		return err
 	}
 
-	c := DB.c.Database("discord-bot").Collection("pidorator-game")
+	c := DB.c.Database(BotDBName).Collection(GameCollectionName)
 	filter := bson.D{{Key: "userID", Value: userID}, {Key: "guildID", Value: guildID}}
 	update := bson.D{{Key: "$inc", Value: bson.D{{Key: "score", Value: 1}}}}
 

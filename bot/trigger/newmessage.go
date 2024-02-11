@@ -37,22 +37,26 @@ func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.Me
 	}
 
 	switch {
-	case strings.HasPrefix(message.Content, "!help"):
+	case strings.HasPrefix(message.Content, DefaultPrefix+"help"):
 		// TODO autodoc for help command
 		discord.ChannelMessageSend(message.ChannelID, "Документация будет позже :D")
-	case strings.HasPrefix(message.Content, "!ктопидор"):
+	case strings.HasPrefix(message.Content, DefaultPrefix+"ктопидор"):
 		if game != nil {
 			game.Who(ctx, discord, message)
 		}
-	case strings.HasPrefix(message.Content, "!списокпидоров") || strings.HasPrefix(message.Content, "!топпидоров"):
+	case strings.HasPrefix(message.Content, DefaultPrefix+"списокпидоров") || strings.HasPrefix(message.Content, DefaultPrefix+"топпидоров"):
 		if game != nil {
 			game.List(ctx, discord, message)
 		}
-	case strings.HasPrefix(message.Content, "!пидордня"):
+	case strings.HasPrefix(message.Content, DefaultPrefix+"списоксобытий"):
+		if game != nil {
+			game.EventList(ctx, discord, message)
+		}
+	case strings.HasPrefix(message.Content, DefaultPrefix+"пидордня"):
 		if game != nil {
 			game.AddPlayer(ctx, discord, message)
 		}
-	case strings.HasPrefix(message.Content, "!botrename"):
+	case strings.HasPrefix(message.Content, DefaultPrefix+"botrename"):
 		if admin != nil {
 			admin.BotRename(ctx, discord, message)
 		}
