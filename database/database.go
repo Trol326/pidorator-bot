@@ -23,7 +23,7 @@ type Database interface {
 	GetEvents(ctx context.Context, guildID string) ([]*EventData, error)
 	FindEvent(ctx context.Context, guildID string, eventType string) (*EventData, error)
 	IncreasePlayerScore(ctx context.Context, guildID string, userID string) error
-	UpdatePlayersData(ctx context.Context, guildID string, data []*PlayerData) error
+	UpdatePlayersData(ctx context.Context, data []*PlayerData) error
 }
 
 //TODO models folder
@@ -43,7 +43,7 @@ type EventData struct {
 }
 
 func (d *PlayerData) String() string {
-	return fmt.Sprintf("{GuildID: %s, UserID: %s, Username: %s, Score: %d}\n", d.GuildID, d.UserID, d.Username, d.Score)
+	return fmt.Sprintf("{GuildID: %s, UserID: %s, Username: %s, Score: %d}", d.GuildID, d.UserID, d.Username, d.Score)
 }
 
 func (d *EventData) String() string {

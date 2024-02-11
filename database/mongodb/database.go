@@ -31,7 +31,7 @@ func New(ctx context.Context, log *zerolog.Logger) Database {
 
 	err := result.NewConnection(ctx)
 	if err != nil {
-		log.Error().Msgf("Error. Can't connect to database. err = %s", err)
+		log.Error().Msgf("[mongodb.New]Error. Can't connect to database. err = %s", err)
 	}
 
 	return result
@@ -65,23 +65,23 @@ func (DB *Database) NewConnection(ctx context.Context) error {
 
 	DB.c = client
 
-	DB.log.Info().Msg("Connected to MongoDB!")
+	DB.log.Info().Msg("[mongodb.NewConnection]Connected to MongoDB!")
 
 	return nil
 }
 
 func (DB *Database) Disconnect(ctx context.Context) {
 	if DB.c == nil {
-		DB.log.Error().Msgf("Error. Database client not found")
+		DB.log.Error().Msgf("[mongodb.Disconnect]Error. Database client not found")
 		return
 	}
 	err := DB.c.Disconnect(ctx)
 	if err != nil {
-		DB.log.Error().Msgf("Error. Can't disconnect from database. err = %s", err)
+		DB.log.Error().Msgf("[mongodb.Disconnect]Error. Can't disconnect from database. err = %s", err)
 		return
 	}
 
-	DB.log.Debug().Msg("Connection to MongoDB is also closed.")
+	DB.log.Debug().Msg("[mongodb.Disconnect]Connection to MongoDB is also closed.")
 }
 
 func (DB *Database) AddPlayer(ctx context.Context, data *database.PlayerData) error {
@@ -143,7 +143,7 @@ func (DB *Database) AddEvent(ctx context.Context, data *database.EventData) erro
 		return err
 	}
 
-	DB.log.Debug().Msgf("Event added successfully: %v", result)
+	DB.log.Debug().Msgf("[mongodb.AddEvent]Event added successfully: %v", result)
 
 	return nil
 }
@@ -163,7 +163,7 @@ func (DB *Database) UpdateEvent(ctx context.Context, data *database.EventData) e
 		return err
 	}
 
-	DB.log.Debug().Msgf("Matched %v documents and updated %v documents.\n", result.MatchedCount, result.ModifiedCount)
+	DB.log.Debug().Msgf("[mongodb.UpdateEvent]Matched %v documents and updated %v documents.\n", result.MatchedCount, result.ModifiedCount)
 
 	return nil
 }
@@ -190,7 +190,7 @@ func (DB *Database) GetEvents(ctx context.Context, guildID string) ([]*database.
 		var elem database.EventData
 		err := cur.Decode(&elem)
 		if err != nil {
-			DB.log.Error().Err(err)
+			DB.log.Error().Err(err).Msg("[mongodb.GetEvents.cur.next]")
 		}
 		results = append(results, &elem)
 	}
@@ -198,7 +198,7 @@ func (DB *Database) GetEvents(ctx context.Context, guildID string) ([]*database.
 		return []*database.EventData{}, err
 	}
 
-	DB.log.Debug().Msgf("Found multiple documents(%d). Array of pointers: %+v", len(results), results)
+	DB.log.Debug().Msgf("[mongodb.GetEvents]Found multiple documents(%d). Array of pointers: %+v", len(results), results)
 
 	return results, nil
 }
@@ -225,7 +225,7 @@ func (DB *Database) GetAllPlayers(ctx context.Context, guildID string) ([]*datab
 		var elem database.PlayerData
 		err := cur.Decode(&elem)
 		if err != nil {
-			DB.log.Error().Err(err)
+			DB.log.Error().Err(err).Msg("[mongodb.GetAllPlayers.cur.next]")
 		}
 		results = append(results, &elem)
 	}
@@ -233,7 +233,7 @@ func (DB *Database) GetAllPlayers(ctx context.Context, guildID string) ([]*datab
 		return []*database.PlayerData{}, err
 	}
 
-	DB.log.Debug().Msgf("Found multiple documents(%d). Array of pointers: %+v", len(results), results)
+	DB.log.Debug().Msgf("[mongodb.GetAllPlayers]Found multiple documents(%d). Array of pointers: %+v", len(results), results)
 
 	return results, nil
 }
@@ -255,7 +255,7 @@ func (DB *Database) FindPlayer(ctx context.Context, guildID string, userID strin
 	if err != nil {
 		return &database.PlayerData{}, err
 	}
-	DB.log.Debug().Msgf("Player finded: %v", result)
+	DB.log.Debug().Msgf("[mongodb.FindPlayer]Player finded: %v", result)
 
 	return &result, nil
 }
@@ -278,7 +278,7 @@ func (DB *Database) FindEvent(ctx context.Context, guildID string, eventType str
 		return &database.EventData{}, err
 	}
 
-	DB.log.Debug().Msgf("Event finded: %v", result)
+	DB.log.Debug().Msgf("[mongodb.FindEvent]Event finded: %v", result)
 
 	return &result, nil
 }
@@ -298,12 +298,36 @@ func (DB *Database) IncreasePlayerScore(ctx context.Context, guildID string, use
 		return err
 	}
 
-	DB.log.Debug().Msgf("Matched %v documents and updated %v documents.\n", result.MatchedCount, result.ModifiedCount)
+	DB.log.Debug().Msgf("[mongodb.IncreasePlayerScore]Matched %v documents and updated %v documents.", result.MatchedCount, result.ModifiedCount)
 
 	return nil
 }
 
-func (DB *Database) UpdatePlayersData(ctx context.Context, guildID string, data []*database.PlayerData) error {
+func (DB *Database) UpdatePlayersData(ctx context.Context, data []*database.PlayerData) error {
+	if DB.c == nil {
+		err := fmt.Errorf("error. Database client not found")
+		return err
+	}
+
+	DB.log.Debug().Msgf("[mongodb.UpdatePlayersData]Getted %d players data: %v", len(data), data)
+
+	var counterMatched int64 = 0
+	var counterModified int64 = 0
+	c := DB.c.Database(BotDBName).Collection(GameCollectionName)
+	for _, player := range data {
+		filter := bson.D{{Key: "userID", Value: player.UserID}, {Key: "guildID", Value: player.GuildID}}
+		update := bson.D{{Key: "$set", Value: bson.D{{Key: "username", Value: player.Username}}}}
+
+		result, err := c.UpdateOne(ctx, filter, update)
+		if err != nil {
+			return err
+		}
+
+		counterMatched += result.MatchedCount
+		counterModified += result.ModifiedCount
+	}
+
+	DB.log.Debug().Msgf("[mongodb.UpdatePlayersData]Matched %v documents and updated %v documents", counterMatched, counterModified)
 
 	return nil
 }

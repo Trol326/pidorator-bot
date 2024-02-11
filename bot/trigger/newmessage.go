@@ -22,7 +22,7 @@ func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.Me
 		return
 	}
 
-	t.Log.Debug().Msgf("Getted %s", message.Content)
+	t.Log.Info().Msgf("Getted %s", message.Content)
 
 	ctx := context.Background()
 
@@ -48,13 +48,17 @@ func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.Me
 		if game != nil {
 			game.List(ctx, discord, message)
 		}
-	case strings.HasPrefix(message.Content, DefaultPrefix+"списоксобытий"):
-		if game != nil {
-			game.EventList(ctx, discord, message)
-		}
 	case strings.HasPrefix(message.Content, DefaultPrefix+"пидордня"):
 		if game != nil {
 			game.AddPlayer(ctx, discord, message)
+		}
+	case strings.HasPrefix(message.Content, DefaultPrefix+"обновитьпидоров"):
+		if game != nil {
+			game.UpdatePlayersData(ctx, discord, message)
+		}
+	case strings.HasPrefix(message.Content, DefaultPrefix+"списоксобытий"):
+		if game != nil {
+			game.EventList(ctx, discord, message)
 		}
 	case strings.HasPrefix(message.Content, DefaultPrefix+"botrename"):
 		if admin != nil {

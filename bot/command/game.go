@@ -12,16 +12,16 @@ import (
 )
 
 func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
-	c.log.Debug().Msg("commands.who triggered")
+	c.log.Info().Msg("[commands.Who]triggered")
 
 	ev, err := c.db.FindEvent(ctx, message.GuildID, database.GameEventName)
 	if err != nil && err.Error() != database.EventAlreadyExistError {
-		c.log.Error().Err(err).Msgf("Error. Can't find event")
+		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't find event")
 		discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		return
 	}
 	if ev.GuildID != "" && !IsGameEventEnded(ev) {
-		c.log.Debug().Msg("Can't roll, event still not ended")
+		c.log.Debug().Msg("[commands.Who]Can't roll, event still not ended")
 		text := fmt.Sprintf("Да ты погоди, %s, время ещё не пришло. В предыдущий раз крутили %s", message.Author.GlobalName, utils.ToDiscordTimeStamp(ev.StartTime, utils.TSFormat().Relative))
 		discord.ChannelMessageSend(message.ChannelID, text)
 		return
@@ -29,14 +29,14 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 
 	player, err := c.getRandomPlayer(ctx, message.GuildID)
 	if err != nil {
-		c.log.Error().Err(err).Msgf("Error. Can't get player")
+		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't get player")
 		discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		return
 	}
 
 	err = c.db.IncreasePlayerScore(ctx, player.GuildID, player.UserID)
 	if err != nil {
-		c.log.Error().Err(err).Msgf("Error. Can't increase player score")
+		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't increase player score")
 		discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		return
 	}
@@ -51,14 +51,14 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 	}
 	err = c.db.AddEvent(ctx, &event)
 	if err != nil && err.Error() != database.EventAlreadyExistError {
-		c.log.Error().Err(err).Msgf("Error. Can't add event")
+		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't add event")
 		discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		return
 	}
 	if err.Error() == database.EventAlreadyExistError {
 		err := c.db.UpdateEvent(ctx, &event)
 		if err != nil {
-			c.log.Error().Err(err).Msgf("Error. Can't update event")
+			c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't update event")
 			discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		}
 	}
@@ -68,25 +68,23 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 }
 
 func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
-	c.log.Debug().Msg("commands.addplayer triggered")
+	c.log.Info().Msg("[commands.AddPlayer]triggered")
 
-	nickname := message.Member.Nick
-	if nickname == "" {
-		// TODO for discordgo pre 0.27.2, delete when package updates
-		//nickname = cases.Title(language.Und, cases.NoLower).String(message.Author.Username)
-		nickname = message.Author.GlobalName
-	}
+	member := message.Member
+	// hack coz member.user in message.member is nil
+	member.User = message.Author
+	nickname := getNickname(member)
 	data := database.PlayerData{GuildID: message.GuildID, UserID: message.Author.ID, Username: nickname}
 
 	err := c.db.AddPlayer(ctx, &data)
 	if err != nil {
 		if err.Error() == database.PlayerAlreadyExistError {
-			c.log.Debug().Err(err).Msgf("player already exist")
+			c.log.Debug().Err(err).Msgf("[commands.AddPlayer]player already exist")
 			text := fmt.Sprintf("э, %s, куда тебе? Ты же уже участвуешь", data.Username)
 			discord.ChannelMessageSend(message.ChannelID, text)
 			return
 		}
-		c.log.Error().Err(err).Msgf("Error. Can't add player")
+		c.log.Error().Err(err).Msgf("[commands.AddPlayer]Error. Can't add player")
 		discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		return
 	}
@@ -96,16 +94,16 @@ func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, me
 }
 
 func (c *Commands) List(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
-	c.log.Debug().Msg("commands.list triggered")
+	c.log.Info().Msg("[commands.List]triggered")
 
 	data, err := c.db.GetAllPlayers(ctx, message.GuildID)
 	if err != nil {
-		c.log.Error().Err(err).Msgf("Error. Can't get players")
+		c.log.Error().Err(err).Msgf("[commands.List]Error. Can't get players")
 		discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		return
 	}
 
-	c.log.Debug().Msgf("Getted %d players", len(data))
+	c.log.Debug().Msgf("[commands.List]Getted %d players", len(data))
 
 	top := ""
 	for i, d := range data {
@@ -121,16 +119,16 @@ func (c *Commands) List(ctx context.Context, discord *discordgo.Session, message
 }
 
 func (c *Commands) EventList(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
-	c.log.Debug().Msg("commands.eventList triggered")
+	c.log.Info().Msg("[commands.EventList]triggered")
 
 	data, err := c.db.GetEvents(ctx, message.GuildID)
 	if err != nil {
-		c.log.Error().Err(err).Msgf("Error. Can't get events")
+		c.log.Error().Err(err).Msgf("[commands.EventList]Error. Can't get events")
 		discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		return
 	}
 
-	c.log.Debug().Msgf("Getted %d events", len(data))
+	c.log.Debug().Msgf("[commands.EventList]Getted %d events", len(data))
 
 	top := ""
 	for i, d := range data {
@@ -140,6 +138,51 @@ func (c *Commands) EventList(ctx context.Context, discord *discordgo.Session, me
 	}
 
 	text := fmt.Sprintf("Список запланированных на этом сервере событий:\n%s", top)
+	discord.ChannelMessageSend(message.ChannelID, text)
+}
+
+func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
+	c.log.Info().Msg("[commands.UpdatePlayersData]triggered")
+
+	allPlayers, err := c.db.GetAllPlayers(ctx, message.GuildID)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.UpdatePlayersData]Error. Can't get players")
+		discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
+		return
+	}
+
+	c.log.Debug().Msgf("[commands.UpdatePlayersData]Getted %d players", len(allPlayers))
+
+	text := fmt.Sprintf("Обновляю данные %d игроков...", len(allPlayers))
+	discord.ChannelMessageSend(message.ChannelID, text)
+
+	players := make([]*database.PlayerData, 0, len(allPlayers))
+	for _, player := range allPlayers {
+		u, err := discord.GuildMember(player.GuildID, player.UserID)
+		if err != nil {
+			c.log.Debug().Err(err).Msgf("[commands.UpdatePlayersData]Can't get player gid: %s; uid: %s; ", player.GuildID, player.UserID)
+			continue
+		}
+
+		username := getNickname(u)
+		if player.Username != username {
+			p := &database.PlayerData{GuildID: player.GuildID, UserID: player.UserID, Score: player.Score, Username: username}
+			players = append(players, p)
+		}
+	}
+
+	err = c.db.UpdatePlayersData(ctx, players)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.UpdatePlayersData]Error. Can't update players data")
+		discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
+		return
+	}
+
+	if len(players) == 1 {
+		text = fmt.Sprintf("Данные %d игрока успешно обновлены", len(players))
+	} else {
+		text = fmt.Sprintf("Данные %d игроков успешно обновлены", len(players))
+	}
 	discord.ChannelMessageSend(message.ChannelID, text)
 }
 
@@ -165,11 +208,25 @@ func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*databa
 		return &database.PlayerData{}, err
 	}
 
-	i := len(players) - 1
+	i := len(players)
 	random := rand.New(rand.NewSource(time.Now().Unix()))
 	num := random.Int31n(int32(i))
 
 	result = players[num]
 
 	return result, nil
+}
+
+func getNickname(member *discordgo.Member) string {
+	nickname := member.Nick
+	if nickname == "" {
+		// TODO for discordgo pre 0.27.2, delete when package updates
+		//nickname = cases.Title(language.Und, cases.NoLower).String(message.Author.Username)
+		nickname = member.User.GlobalName
+	}
+	if nickname == "" {
+		nickname = member.User.Username
+	}
+
+	return nickname
 }

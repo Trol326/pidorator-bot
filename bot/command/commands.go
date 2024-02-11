@@ -25,6 +25,8 @@ type Game interface {
 	List(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate)
 	// writes full list of events for this server
 	EventList(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate)
+	// updates data for each player, such as local username
+	UpdatePlayersData(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate)
 	// TODO change season
 	// StartNewSeason(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate)
 }
