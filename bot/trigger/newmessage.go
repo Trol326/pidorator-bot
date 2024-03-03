@@ -16,13 +16,15 @@ const (
 
 /*
 Trigger when user send new message on server. Only in available for bot channels
+
+TODO maybe make trigger for game and for admin(?)
 */
 func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	if message.Author.ID == discord.State.User.ID || !strings.HasPrefix(message.Content, DefaultPrefix) {
 		return
 	}
 
-	t.Log.Info().Msgf("Getted %s", message.Content)
+	t.Log.Info().Msgf("Got %s", message.Content)
 
 	ctx := context.Background()
 
@@ -42,7 +44,11 @@ func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.Me
 		discord.ChannelMessageSend(message.ChannelID, "Документация будет позже :D")
 	case strings.HasPrefix(message.Content, DefaultPrefix+"ктопидор"):
 		if game != nil {
-			game.Who(ctx, discord, message)
+			event, err := game.Who(ctx, discord, message)
+			if err != nil {
+				return
+			}
+			t.OnEventCreation(ctx, discord, event)
 		}
 	case strings.HasPrefix(message.Content, DefaultPrefix+"списокпидоров") || strings.HasPrefix(message.Content, DefaultPrefix+"топпидоров"):
 		if game != nil {

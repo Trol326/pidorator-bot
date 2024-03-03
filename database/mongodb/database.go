@@ -26,7 +26,6 @@ const (
 )
 
 func New(ctx context.Context, log *zerolog.Logger) Database {
-
 	result := Database{log: log}
 
 	err := result.NewConnection(ctx)
@@ -133,7 +132,7 @@ func (DB *Database) AddEvent(ctx context.Context, data *database.EventData) erro
 
 	c := DB.c.Database(BotDBName).Collection(EventCollectionName)
 
-	result, err := c.InsertOne(context.TODO(), data)
+	result, err := c.InsertOne(ctx, data)
 	if err != nil {
 		return err
 	}
@@ -156,14 +155,14 @@ func (DB *Database) UpdateEvent(ctx context.Context, data *database.EventData) e
 
 	c := DB.c.Database(BotDBName).Collection(EventCollectionName)
 	filter := bson.D{{Key: "guildID", Value: data.GuildID}, {Key: "eventType", Value: data.Type}}
-	update := bson.D{{Key: "$set", Value: bson.D{{Key: "startTime", Value: data.StartTime}, {Key: "endTime", Value: data.EndTime}}}}
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "startTime", Value: data.StartTime}, {Key: "endTime", Value: data.EndTime}, {Key: "channelID", Value: data.ChannelID}}}}
 
 	result, err := c.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
 	}
 
-	DB.log.Debug().Msgf("[mongodb.UpdateEvent]Matched %v documents and updated %v documents.\n", result.MatchedCount, result.ModifiedCount)
+	DB.log.Debug().Msgf("[mongodb.UpdateEvent]Matched %v documents and updated %v documents.", result.MatchedCount, result.ModifiedCount)
 
 	return nil
 }
@@ -180,7 +179,12 @@ func (DB *Database) GetEvents(ctx context.Context, guildID string) ([]*database.
 
 	var results []*database.EventData
 
-	cur, err := c.Find(ctx, bson.D{{Key: "guildID", Value: guildID}}, findOptions)
+	filter := bson.D{}
+	if guildID != "" {
+		filter = bson.D{{Key: "guildID", Value: guildID}}
+	}
+
+	cur, err := c.Find(ctx, filter, findOptions)
 	if err != nil {
 		return []*database.EventData{}, err
 	}
@@ -309,7 +313,7 @@ func (DB *Database) UpdatePlayersData(ctx context.Context, data []*database.Play
 		return err
 	}
 
-	DB.log.Debug().Msgf("[mongodb.UpdatePlayersData]Getted %d players data: %v", len(data), data)
+	DB.log.Debug().Msgf("[mongodb.UpdatePlayersData]Got %d players data: %v", len(data), data)
 
 	var counterMatched int64 = 0
 	var counterModified int64 = 0

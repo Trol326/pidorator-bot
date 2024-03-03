@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 const (
@@ -37,9 +38,15 @@ type PlayerData struct {
 
 type EventData struct {
 	GuildID   string `bson:"guildID,omitempty"`
+	ChannelID string `bson:"channelID,omitempty"`
 	Type      string `bson:"eventType,omitempty"`
 	StartTime int64  `bson:"startTime"`
 	EndTime   int64  `bson:"endTime"`
+}
+
+type BotData struct {
+	GuildID string `bson:"guildID,omitempty"`
+	//	GameChannelID   string `bson:"gameChannelID,omitempty"`
 }
 
 func (d *PlayerData) String() string {
@@ -47,7 +54,7 @@ func (d *PlayerData) String() string {
 }
 
 func (d *EventData) String() string {
-	return fmt.Sprintf("{GuildID: %s, Type: %s, StartTime: %d, EndTime: %d}", d.GuildID, d.Type, d.StartTime, d.EndTime)
+	return fmt.Sprintf("{GuildID: %s, ChannelID: %s, Type: %s, StartTime: %d, EndTime: %d}", d.GuildID, d.ChannelID, d.Type, d.StartTime, d.EndTime)
 }
 
 func (d EventData) IsEventEnded(now ...int64) bool {
@@ -61,4 +68,15 @@ func (d EventData) IsEventEnded(now ...int64) bool {
 		return false
 	}
 	return d.EndTime < now[0]
+}
+
+func (d EventData) SecondsUntilEnd() int64 {
+	var result int64 = 0
+	now := time.Now().Unix()
+	if d.IsEventEnded(now) {
+		return result
+	}
+	result = d.EndTime - now
+
+	return result
 }

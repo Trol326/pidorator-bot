@@ -8,6 +8,7 @@ import (
 	"pidorator-bot/bot/trigger"
 	"pidorator-bot/database"
 	"pidorator-bot/database/mongodb"
+	"pidorator-bot/utils/timer"
 	"syscall"
 	"time"
 
@@ -16,9 +17,11 @@ import (
 )
 
 type Client struct {
-	Session *discordgo.Session
-	DB      database.Database
-	Log     *zerolog.Logger
+	Session  *discordgo.Session
+	DB       database.Database
+	Log      *zerolog.Logger
+	Timers   *timer.MasterTimer
+	Triggers *trigger.Trigger
 }
 
 func New(ctx context.Context) (Client, error) {
@@ -44,11 +47,15 @@ func New(ctx context.Context) (Client, error) {
 	}
 
 	db := mongodb.New(ctx, &log)
+	t := timer.New(&log)
+	tr := trigger.New(&log, &db, &t)
 
 	client := Client{
-		Session: s,
-		DB:      &db,
-		Log:     &log,
+		Session:  s,
+		DB:       &db,
+		Log:      &log,
+		Timers:   &t,
+		Triggers: tr,
 	}
 
 	return client, nil
@@ -58,6 +65,8 @@ func (c *Client) Start(ctx context.Context) {
 	c.Session.Open()
 	defer c.Session.Close()
 	defer c.DB.Disconnect(ctx)
+	c.InitTimers(ctx)
+	defer c.Timers.StopAll()
 
 	c.Log.Info().Msg("Bot is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
@@ -68,7 +77,5 @@ func (c *Client) Start(ctx context.Context) {
 }
 
 func (c *Client) InitHandlers() {
-	t := trigger.New(c.Log, c.DB)
-
-	c.Session.AddHandler(t.OnNewMessage)
+	c.Session.AddHandler(c.Triggers.OnNewMessage)
 }
