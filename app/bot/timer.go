@@ -3,7 +3,7 @@ package bot
 import (
 	"context"
 	"fmt"
-	"pidorator-bot/database"
+	"pidorator-bot/app/database"
 )
 
 func (c *Client) InitTimers(ctx context.Context) {

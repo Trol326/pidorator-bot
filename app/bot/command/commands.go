@@ -2,7 +2,7 @@ package command
 
 import (
 	"context"
-	"pidorator-bot/database"
+	"pidorator-bot/app/database"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog"

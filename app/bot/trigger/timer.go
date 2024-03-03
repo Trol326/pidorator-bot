@@ -3,7 +3,7 @@ package trigger
 import (
 	"context"
 	"fmt"
-	"pidorator-bot/database"
+	"pidorator-bot/app/database"
 
 	"github.com/bwmarrin/discordgo"
 )

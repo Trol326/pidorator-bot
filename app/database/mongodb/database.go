@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"pidorator-bot/database"
+	"pidorator-bot/app/database"
 	"time"
 
 	"github.com/rs/zerolog"

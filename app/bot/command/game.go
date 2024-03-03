@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"pidorator-bot/database"
-	"pidorator-bot/utils"
+	"pidorator-bot/app/database"
+	"pidorator-bot/tools"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -22,7 +22,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 	}
 	if ev.GuildID != "" && !IsGameEventEnded(ev) {
 		c.log.Debug().Msg("[commands.Autoroll]Can't roll, event still not ended")
-		text := fmt.Sprintf("Накосячил, ещё рано. В предыдущий раз крутили %s", utils.ToDiscordTimeStamp(ev.StartTime, utils.TSFormat().Relative))
+		text := fmt.Sprintf("Накосячил, ещё рано. В предыдущий раз крутили %s", tools.ToDiscordTimeStamp(ev.StartTime, tools.TSFormat().Relative))
 		discord.ChannelMessageSend(channelID, text)
 		err := fmt.Errorf("event not ended")
 		return nil, err
@@ -66,7 +66,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		}
 	}
 
-	text := fmt.Sprintf("%s, ты пидор <:MumeiYou:1192139708222935050>", utils.UserIDToMention(player.UserID))
+	text := fmt.Sprintf("%s, ты пидор <:MumeiYou:1192139708222935050>", tools.UserIDToMention(player.UserID))
 	discord.ChannelMessageSend(channelID, text)
 	return &event, nil
 }
@@ -82,7 +82,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 	}
 	if ev.GuildID != "" && !IsGameEventEnded(ev) {
 		c.log.Debug().Msg("[commands.Who]Can't roll, event still not ended")
-		text := fmt.Sprintf("Да ты погоди, %s, время ещё не пришло. В предыдущий раз крутили %s", message.Author.GlobalName, utils.ToDiscordTimeStamp(ev.StartTime, utils.TSFormat().Relative))
+		text := fmt.Sprintf("Да ты погоди, %s, время ещё не пришло. В предыдущий раз крутили %s", message.Author.GlobalName, tools.ToDiscordTimeStamp(ev.StartTime, tools.TSFormat().Relative))
 		discord.ChannelMessageSend(message.ChannelID, text)
 		err = fmt.Errorf("event not ended")
 		return nil, err
@@ -126,7 +126,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		}
 	}
 
-	text := fmt.Sprintf("%s, ты пидор <:MumeiYou:1192139708222935050>", utils.UserIDToMention(player.UserID))
+	text := fmt.Sprintf("%s, ты пидор <:MumeiYou:1192139708222935050>", tools.UserIDToMention(player.UserID))
 	discord.ChannelMessageSend(message.ChannelID, text)
 	return &event, nil
 }
@@ -196,8 +196,8 @@ func (c *Commands) EventList(ctx context.Context, discord *discordgo.Session, me
 
 	top := ""
 	for i, d := range data {
-		startTS := utils.ToDiscordTimeStamp(d.StartTime, utils.TSFormat().LongDateShortTime)
-		endTS := utils.ToDiscordTimeStamp(d.EndTime, utils.TSFormat().LongDateShortTime)
+		startTS := tools.ToDiscordTimeStamp(d.StartTime, tools.TSFormat().LongDateShortTime)
+		endTS := tools.ToDiscordTimeStamp(d.EndTime, tools.TSFormat().LongDateShortTime)
 		top += fmt.Sprintf("%d) %s. %s - %s\n", i+1, d.Type, startTS, endTS)
 	}
 

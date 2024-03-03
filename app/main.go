@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"pidorator-bot/bot"
+	"pidorator-bot/app/bot"
 
 	"github.com/joho/godotenv"
 )

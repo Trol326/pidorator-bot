@@ -1,9 +1,9 @@
 package trigger
 
 import (
-	"pidorator-bot/bot/command"
-	"pidorator-bot/database"
-	"pidorator-bot/utils/timer"
+	"pidorator-bot/app/bot/command"
+	"pidorator-bot/app/database"
+	"pidorator-bot/tools/timer"
 
 	"github.com/rs/zerolog"
 )

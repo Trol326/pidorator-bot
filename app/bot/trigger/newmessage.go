@@ -2,7 +2,7 @@ package trigger
 
 import (
 	"context"
-	"pidorator-bot/bot/command"
+	"pidorator-bot/app/bot/command"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
