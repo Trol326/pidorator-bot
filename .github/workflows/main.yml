@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: 1.18
       - name: Code
@@ -45,13 +45,12 @@ jobs:
     steps:
       - name: Creating issue and vaiting for approve
         uses: trstringer/manual-approval@v1
-        timeout-minutes: 10
+        timeout-minutes: 5
         with:
           secret: ${{ github.TOKEN }}
-          approvers: trol326
+          approvers: Trol326,trol326
           minimum-approvals: 1
-          issue-title: "Deploying new bot version"
-          issue-body: "Please approve or deny the deployment"
+          issue-body: "Deploying new bot version.\nPlease approve or deny the deployment"
           exclude-workflow-initiator-as-approver: false
           additional-approved-words: 'принять, да, подтвердить'
           additional-denied-words: 'отмена, нет, отменить'
