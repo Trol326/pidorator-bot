@@ -269,7 +269,7 @@ func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*databa
 
 	players, err := c.db.GetAllPlayers(ctx, guildID)
 	if err != nil {
-		return &database.PlayerData{}, err
+		return result, err
 	}
 
 	i := len(players)
