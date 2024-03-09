@@ -22,3 +22,6 @@ go.work
 
 # Local variables
 *.env
+
+# vscode settings
+.vscode/settings.json
