@@ -1,0 +1,5 @@
+version: "3"
+
+services:
+  bot: 
+    image: trol326/pidorator-bot:latest
