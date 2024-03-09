@@ -12,3 +12,9 @@ services:
         delay: 10s
       restart_policy:
         condition: on-failure
+    environment:
+      KEY: ${KEY}
+      HOSTID: ${HOSTID}
+      DBADRESS: ${DBADRESS}
+      DBUSERNAME: ${DBUSERNAME}
+      DBPASSWORD: ${DBPASSWORD}
