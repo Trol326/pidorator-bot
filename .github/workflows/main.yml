@@ -1,9 +1,12 @@
-name: ci
+name: cicd
 
 on:
   push:
     branches:
       - main
+
+permissions:
+  issues: write
 
 jobs:
   lint:
@@ -36,3 +39,27 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:latest
+  approve:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Creating issue and vaiting for approve
+        uses: trstringer/manual-approval@v1
+        timeout-minutes: 10
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: trol326
+          minimum-approvals: 1
+          issue-title: "Deploying new bot version"
+          issue-body: "Please approve or deny the deployment"
+          exclude-workflow-initiator-as-approver: false
+          additional-approved-words: 'принять, да, подтвердить'
+          additional-denied-words: 'отмена, нет, отменить'
+  deploy:
+    needs: approve
+    runs-on: ubuntu-latest
+    steps:
+    - name: Invoke deployment hook
+      uses: distributhor/workflow-webhook@v3
+      with:
+        webhook_url: ${{ secrets.WEBHOOK_URL }}
