@@ -13,6 +13,7 @@ services:
       restart_policy:
         condition: on-failure
     environment:
+      DEVELOP: ${DEVELOP}
       KEY: ${KEY}
       HOSTID: ${HOSTID}
       DBADRESS: ${DBADRESS}
