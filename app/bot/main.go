@@ -62,7 +62,11 @@ func New(ctx context.Context) (Client, error) {
 }
 
 func (c *Client) Start(ctx context.Context) {
-	c.Session.Open()
+	err := c.Session.Open()
+	if err != nil {
+		c.Log.Err(err).Msg("[bot.Start]Error on session open")
+		return
+	}
 	defer c.Session.Close()
 	defer c.DB.Disconnect(ctx)
 	c.InitTimers(ctx)
