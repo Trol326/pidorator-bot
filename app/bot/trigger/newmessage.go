@@ -41,7 +41,10 @@ func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.Me
 	switch {
 	case strings.HasPrefix(message.Content, DefaultPrefix+"help"):
 		// TODO autodoc for help command
-		discord.ChannelMessageSend(message.ChannelID, "Документация будет позже :D")
+		_, err := discord.ChannelMessageSend(message.ChannelID, "Документация будет позже :D")
+		if err != nil {
+			t.Log.Err(err).Msg("[trigger.OnNewMessage]error on channelMessageSend")
+		}
 	case strings.HasPrefix(message.Content, DefaultPrefix+"ктопидор"):
 		if game != nil {
 			event, err := game.Who(ctx, discord, message)
