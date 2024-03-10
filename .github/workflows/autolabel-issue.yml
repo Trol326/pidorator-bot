@@ -1,0 +1,26 @@
+name: autolabel
+
+on: 
+    issues: 
+        types:
+            - opened
+            - reopened
+
+jobs:
+    label:
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write        
+        steps:
+            - name: check
+              uses: actions-ecosystem/action-regex-match@v2
+              id: regex-match
+              with:
+                text: ${{ github.event.issue.title }}
+                regex: '^Manual approval required for workflow run \d*'
+            - name: set_label
+              uses: actions-ecosystem/action-add-labels@v1
+              if: ${{ steps.regex-match.outputs.match != '' }}
+              with:
+                github_token: ${{ secrets.GITHUB_TOKEN }}
+                labels: deploy approvement
