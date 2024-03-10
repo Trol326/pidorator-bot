@@ -14,7 +14,7 @@ func (c *Client) InitTimers(ctx context.Context) {
 	c.Log.Info().Msgf("Starting event timers...")
 	events, err := c.DB.GetEvents(ctx, "")
 	if err != nil {
-		c.Log.Error().Err(err).Msg("[bot.InitTimers]")
+		c.Log.Error().Err(err).Msg("[bot.InitTimers]error")
 		return
 	}
 
@@ -25,11 +25,11 @@ func (c *Client) InitTimers(ctx context.Context) {
 
 		text := fmt.Sprintf("timer_%s_%s", event.Type, event.GuildID)
 		t, name := c.Timers.New(text, event.SecondsUntilEnd())
-		go func() {
+		go func(e database.EventData) {
 			<-t.C
-			c.Triggers.OnTimerEnded(ctx, c.Session, event.GuildID, event.ChannelID, event.Type)
+			c.Triggers.OnTimerEnded(ctx, c.Session, e.GuildID, e.ChannelID, e.Type)
 			c.Timers.StopByName(name)
-		}()
+		}(*event)
 		c.Log.Info().Msgf("Started %s", text)
 	}
 }

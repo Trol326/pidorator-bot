@@ -9,6 +9,7 @@ import (
 )
 
 func (t *Trigger) OnTimerEnded(ctx context.Context, discord *discordgo.Session, guildID string, channelID string, timerType string) {
+	t.Log.Debug().Msg("[trigger.OnTimerEnded]triggered")
 	if channelID == "" {
 		t.Log.Error().Msgf("[Trigger.OnTimerEnded]Timer ChannelID not found. GuildID = %s; TimerType = %s", guildID, timerType)
 		return
@@ -22,6 +23,7 @@ func (t *Trigger) OnTimerEnded(ctx context.Context, discord *discordgo.Session, 
 		}
 		event, err := t.commands.AutoRoll(ctx, discord, guildID, channelID)
 		if err != nil {
+			t.Log.Err(err).Msg("[trigger.OnTimerEnded]error on autoroll")
 			return
 		}
 		t.OnEventCreation(ctx, discord, event)
