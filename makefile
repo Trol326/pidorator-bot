@@ -7,7 +7,7 @@ tidy:
 
 .PHONY: lint
 lint:
-	golangci-lint run --enable-all
+	golangci-lint run 
 
 .PHONY: install-goctl	
 install-goctl:
@@ -28,3 +28,5 @@ install-lint:
 
 .PHONY: install
 install: tidy install-goctl install-lint
+
+check: tidy lint
