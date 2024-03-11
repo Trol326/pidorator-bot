@@ -15,7 +15,7 @@ install-goctl:
 
 .PHONY: gen-dockerfile
 gen-dockerfile:
-	goctl docker -go app/main.go -tz "Europe/Moscow"
+	goctl docker -go app/main.go -tz "Etc/GMT"
 
 .PHONY: build-image
 build-image:

@@ -18,8 +18,8 @@ RUN go build -ldflags="-s -w" -o /app/main app/main.go
 FROM scratch
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=builder /usr/share/zoneinfo/Europe/Moscow /usr/share/zoneinfo/Europe/Moscow
-ENV TZ Europe/Moscow
+COPY --from=builder /usr/share/zoneinfo/Etc/GMT /usr/share/zoneinfo/Etc/GMT
+ENV TZ Etc/GMT
 
 WORKDIR /app
 COPY --from=builder /app/main /app/main

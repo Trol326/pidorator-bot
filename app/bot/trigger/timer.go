@@ -36,8 +36,8 @@ func (t *Trigger) OnEventCreation(ctx context.Context, discord *discordgo.Sessio
 	timer, name := t.timers.New(text, event.SecondsUntilEnd())
 	go func() {
 		<-timer.C
-		t.OnTimerEnded(ctx, discord, event.GuildID, event.ChannelID, event.Type)
 		t.timers.StopByName(name)
+		t.OnTimerEnded(ctx, discord, event.GuildID, event.ChannelID, event.Type)
 	}()
 	t.Log.Info().Msgf("Started %s", name)
 }
