@@ -27,8 +27,8 @@ func (c *Client) InitTimers(ctx context.Context) {
 		t, name := c.Timers.New(text, event.SecondsUntilEnd())
 		go func(e database.EventData) {
 			<-t.C
-			c.Triggers.OnTimerEnded(ctx, c.Session, e.GuildID, e.ChannelID, e.Type)
 			c.Timers.StopByName(name)
+			c.Triggers.OnTimerEnded(ctx, c.Session, e.GuildID, e.ChannelID, e.Type)
 		}(*event)
 		c.Log.Info().Msgf("Started %s", text)
 	}
