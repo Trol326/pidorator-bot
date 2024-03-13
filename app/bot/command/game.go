@@ -95,6 +95,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) (*database.EventData, error) {
 	c.log.Info().Msg("[commands.Who]triggered")
 
+	// TODO create event if don't exist
 	ev, err := c.db.FindEvent(ctx, message.GuildID, database.GameEventName)
 	if err != nil && err.Error() != database.EventAlreadyExistError && err.Error() != c.db.NotFoundError() {
 		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't find event")
