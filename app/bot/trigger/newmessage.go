@@ -44,6 +44,7 @@ func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.Me
 		_, err := discord.ChannelMessageSend(message.ChannelID, "Документация будет позже :D")
 		if err != nil {
 			t.Log.Err(err).Msg("[trigger.OnNewMessage]error on channelMessageSend")
+			return
 		}
 	case strings.HasPrefix(message.Content, DefaultPrefix+"ктопидор"):
 		if game != nil {
