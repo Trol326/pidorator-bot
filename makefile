@@ -3,6 +3,7 @@ start:
 
 .PHONY: tidy
 tidy:
+	go get github.com/bwmarrin/discordgo@master
 	go mod tidy -v
 
 .PHONY: lint
