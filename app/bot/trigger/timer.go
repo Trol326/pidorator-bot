@@ -31,6 +31,10 @@ func (t *Trigger) OnTimerEnded(ctx context.Context, discord *discordgo.Session, 
 }
 
 func (t *Trigger) OnEventCreation(ctx context.Context, discord *discordgo.Session, event *database.EventData) {
+	if event == nil {
+		t.Log.Info().Msgf("Event is nil. Timer creation canceled")
+		return
+	}
 	t.Log.Info().Msgf("Starting event timer...")
 	text := fmt.Sprintf("timer_%s_%s", event.Type, event.GuildID)
 	timer, name := t.timers.New(text, event.SecondsUntilEnd())

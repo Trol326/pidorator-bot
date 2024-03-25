@@ -335,3 +335,7 @@ func (DB *Database) UpdatePlayersData(ctx context.Context, data []*database.Play
 
 	return nil
 }
+
+func (DB *Database) NotFoundError() string {
+	return ErrorNotExist
+}

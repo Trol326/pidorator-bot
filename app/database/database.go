@@ -25,6 +25,11 @@ type Database interface {
 	FindEvent(ctx context.Context, guildID string, eventType string) (*EventData, error)
 	IncreasePlayerScore(ctx context.Context, guildID string, userID string) error
 	UpdatePlayersData(ctx context.Context, data []*PlayerData) error
+
+	// Returns driver specific error string
+	NotFoundError() string
+	//
+
 }
 
 //TODO models folder
@@ -45,8 +50,10 @@ type EventData struct {
 }
 
 type BotData struct {
-	GuildID string `bson:"guildID,omitempty"`
-	//	GameChannelID   string `bson:"gameChannelID,omitempty"`
+	GuildID       string `bson:"guildID"`
+	GameChannelID string `bson:"gameChannelID,omitempty"`
+	BotPrefix     string `bson:"botPrefix,omitempty"`
+	IsGameEnabled bool   `bson:"isGameEnabled,omitempty"`
 }
 
 func (d *PlayerData) String() string {
