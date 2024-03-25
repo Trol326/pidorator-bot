@@ -19,10 +19,12 @@ type Database struct {
 }
 
 const (
-	BotDBName           string = "discord-bot"
-	GameCollectionName  string = "pidorator-game"
-	EventCollectionName string = "pidorator-events"
-	ErrorNotExist       string = "mongo: no documents in result"
+	BotDBName string = "discord-bot"
+
+	BotDataCollectionName string = "pidorator"
+	GameCollectionName    string = "pidorator-game"
+	EventCollectionName   string = "pidorator-events"
+	ErrorNotExist         string = "mongo: no documents in result"
 )
 
 func New(ctx context.Context, log *zerolog.Logger) Database {
