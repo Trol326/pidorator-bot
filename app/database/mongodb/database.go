@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"pidorator-bot/app/bot/trigger"
 	"pidorator-bot/app/database"
 	"time"
 
@@ -14,18 +15,21 @@ import (
 )
 
 type Database struct {
-	c   *mongo.Client
-	log *zerolog.Logger
+	c       *mongo.Client
+	log     *zerolog.Logger
+	botData map[string]*database.BotData
 }
 
 const (
 	BotDBName string = "discord-bot"
 
-	BotDataCollectionName string = "pidorator"
-	GameCollectionName    string = "pidorator-game"
-	EventCollectionName   string = "pidorator-events"
-	ErrorNotExist         string = "mongo: no documents in result"
+	DataCollectionName  string = "pidorator"
+	GameCollectionName  string = "pidorator-game"
+	EventCollectionName string = "pidorator-events"
+	ErrorNotExist       string = "mongo: no documents in result"
 )
+
+// TODO refactor functions to different files
 
 func New(ctx context.Context, log *zerolog.Logger) Database {
 	result := Database{log: log}
@@ -85,6 +89,112 @@ func (DB *Database) Disconnect(ctx context.Context) {
 	DB.log.Debug().Msg("[mongodb.Disconnect]Connection to MongoDB is also closed.")
 }
 
+func (DB *Database) UpdateBotData(ctx context.Context) error {
+	if DB.botData == nil {
+		DB.botData = make(map[string]*database.BotData)
+	}
+
+	// Get all bot data from DB
+	c := DB.c.Database(BotDBName).Collection(DataCollectionName)
+	findOptions := options.Find()
+	var results []*database.BotData
+	cur, err := c.Find(ctx, bson.D{}, findOptions)
+	if err != nil {
+		return err
+	}
+	defer cur.Close(ctx)
+	for cur.Next(ctx) {
+		var elem database.BotData
+		err := cur.Decode(&elem)
+		if err != nil {
+			DB.log.Error().Err(err).Msg("[mongodb.UpdateBotData.cur.next]")
+		}
+		results = append(results, &elem)
+	}
+	if err := cur.Err(); err != nil {
+		return err
+	}
+	DB.log.Debug().Msgf("[mongodb.UpdateBotData]Found multiple documents(%d). Array of pointers: %+v", len(results), results)
+
+	// adds getted data into map
+	for _, data := range results {
+		DB.botData[data.GuildID] = data
+	}
+
+	return nil
+}
+
+func (DB *Database) GetBotData(ctx context.Context, guildID string) (*database.BotData, error) {
+	result := &database.BotData{}
+
+	if DB.botData == nil {
+		DB.log.Debug().Msg("[mongodb.GetBotData]data map not found")
+		err := DB.UpdateBotData(ctx)
+		if err != nil {
+			return result, err
+		}
+	}
+
+	result, finded := DB.botData[guildID]
+	if !finded {
+		DB.log.Info().Msgf("[mongodb.GetBotData]data for guildID:%s not found. Creating new one", guildID)
+		result, err := DB.CreateBotData(ctx, guildID)
+		if err != nil {
+			return result, err
+		}
+		return result, nil
+	}
+
+	return result, nil
+}
+
+func (DB *Database) CreateBotData(ctx context.Context, guildID string) (*database.BotData, error) {
+	// Default bot data
+	data := &database.BotData{
+		GuildID:       guildID,
+		IsGameEnabled: true,
+		BotPrefix:     trigger.DefaultPrefix,
+	}
+
+	if DB.c == nil {
+		err := fmt.Errorf("error. Database client not found")
+		return &database.BotData{}, err
+	}
+
+	c := DB.c.Database(BotDBName).Collection(DataCollectionName)
+
+	findOptions := options.FindOne()
+	filter := bson.D{{Key: "guildID", Value: data.GuildID}}
+
+	d := database.BotData{}
+	err := c.FindOne(ctx, filter, findOptions).Decode(&d)
+	if err != nil && err.Error() != ErrorNotExist {
+		return &database.BotData{}, err
+	}
+	if d.GuildID != "" {
+		err := fmt.Errorf(database.DataAlreadyExistError)
+		return &database.BotData{}, err
+	}
+
+	result, err := c.InsertOne(ctx, data)
+	if err != nil {
+		return &database.BotData{}, err
+	}
+
+	if result == nil {
+		err := fmt.Errorf("error. Data not created")
+		return &database.BotData{}, err
+	}
+
+	// Update map
+	err = DB.UpdateBotData(ctx)
+	if err != nil {
+		return &database.BotData{}, err
+	}
+
+	return data, nil
+}
+
 func (DB *Database) AddPlayer(ctx context.Context, data *database.PlayerData) error {
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
@@ -95,7 +205,6 @@ func (DB *Database) AddPlayer(ctx context.Context, data *database.PlayerData) er
 	if err != nil && err.Error() != ErrorNotExist {
 		return err
 	}
-
 	if p.GuildID != "" {
 		err := fmt.Errorf(database.PlayerAlreadyExistError)
 		return err
@@ -103,7 +212,7 @@ func (DB *Database) AddPlayer(ctx context.Context, data *database.PlayerData) er
 
 	c := DB.c.Database(BotDBName).Collection(GameCollectionName)
 
-	result, err := c.InsertOne(context.TODO(), data)
+	result, err := c.InsertOne(ctx, data)
 	if err != nil {
 		return err
 	}

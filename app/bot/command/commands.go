@@ -49,3 +49,13 @@ func New(l *zerolog.Logger, db database.Database) *Commands {
 		db:  db,
 	}
 }
+
+func (c *Commands) GetBotData(ctx context.Context, guildID string) (*database.BotData, error) {
+	data, err := c.db.GetBotData(ctx, guildID)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't get bot data")
+		return nil, err
+	}
+
+	return data, nil
+}

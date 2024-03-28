@@ -11,11 +11,14 @@ const (
 
 	PlayerAlreadyExistError string = "error player already exist"
 	EventAlreadyExistError  string = "error event already exist"
+	DataAlreadyExistError   string = "error data already exist"
 )
 
 type Database interface {
 	NewConnection(context.Context) error
 	Disconnect(context.Context)
+	// Returns config data for this guildID
+	GetBotData(ctx context.Context, guildID string) (*BotData, error)
 	AddPlayer(ctx context.Context, data *PlayerData) error
 	GetAllPlayers(ctx context.Context, guildID string) ([]*PlayerData, error)
 	// Adds new event, updates it if event already exist
@@ -28,8 +31,6 @@ type Database interface {
 
 	// Returns driver specific error string
 	NotFoundError() string
-	//
-
 }
 
 //TODO models folder
