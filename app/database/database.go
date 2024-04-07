@@ -12,6 +12,10 @@ const (
 	PlayerAlreadyExistError string = "error player already exist"
 	EventAlreadyExistError  string = "error event already exist"
 	DataAlreadyExistError   string = "error data already exist"
+
+	AccendingSorting int = 1
+	DcendingSorting  int = -1
+	NoSorting        int = 0
 )
 
 type Database interface {
@@ -20,7 +24,7 @@ type Database interface {
 	// Returns config data for this guildID
 	GetBotData(ctx context.Context, guildID string) (*BotData, error)
 	AddPlayer(ctx context.Context, data *PlayerData) error
-	GetAllPlayers(ctx context.Context, guildID string) ([]*PlayerData, error)
+	GetAllPlayers(ctx context.Context, guildID string, sortingType int) ([]*PlayerData, error)
 	// Adds new event, updates it if event already exist
 	AddEvent(ctx context.Context, data *EventData) error
 	UpdateEvent(ctx context.Context, data *EventData) error

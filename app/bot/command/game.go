@@ -212,7 +212,7 @@ func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, me
 func (c *Commands) List(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
 	c.log.Info().Msg("[commands.List]triggered")
 
-	data, err := c.db.GetAllPlayers(ctx, message.GuildID)
+	data, err := c.db.GetAllPlayers(ctx, message.GuildID, database.DcendingSorting)
 	if err != nil {
 		c.log.Error().Err(err).Msgf("[commands.List]Error. Can't get players")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
@@ -272,7 +272,7 @@ func (c *Commands) EventList(ctx context.Context, discord *discordgo.Session, me
 func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
 	c.log.Info().Msg("[commands.UpdatePlayersData]triggered")
 
-	allPlayers, err := c.db.GetAllPlayers(ctx, message.GuildID)
+	allPlayers, err := c.db.GetAllPlayers(ctx, message.GuildID, database.NoSorting)
 	if err != nil {
 		c.log.Error().Err(err).Msgf("[commands.UpdatePlayersData]Error. Can't get players")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
@@ -346,7 +346,7 @@ func IsGameEventEnded(event *database.EventData) bool {
 func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*database.PlayerData, error) {
 	result := &database.PlayerData{}
 
-	players, err := c.db.GetAllPlayers(ctx, guildID)
+	players, err := c.db.GetAllPlayers(ctx, guildID, database.NoSorting)
 	if err != nil {
 		return result, err
 	}

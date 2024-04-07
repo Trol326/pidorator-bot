@@ -318,7 +318,7 @@ func (DB *Database) GetEvents(ctx context.Context, guildID string) ([]*database.
 	return results, nil
 }
 
-func (DB *Database) GetAllPlayers(ctx context.Context, guildID string) ([]*database.PlayerData, error) {
+func (DB *Database) GetAllPlayers(ctx context.Context, guildID string, sortingType int) ([]*database.PlayerData, error) {
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
 		return []*database.PlayerData{}, err
@@ -326,7 +326,10 @@ func (DB *Database) GetAllPlayers(ctx context.Context, guildID string) ([]*datab
 
 	c := DB.c.Database(BotDBName).Collection(GameCollectionName)
 
-	findOptions := options.Find().SetSort(bson.D{{Key: "score", Value: -1}})
+	findOptions := options.Find()
+	if sortingType != database.NoSorting {
+		findOptions = findOptions.SetSort(bson.D{{Key: "score", Value: sortingType}})
+	}
 
 	var results []*database.PlayerData
 
