@@ -14,6 +14,25 @@ import (
 func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, guildID string, channelID string) (*database.EventData, error) {
 	c.log.Info().Msg("[commands.Autoroll]triggered")
 
+	data, err := c.db.GetBotData(ctx, guildID)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.DisableAutoRoll]Error. Can't get bot data")
+		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+		}
+		return nil, err
+	}
+
+	if !data.IsAutoRollEnabled {
+		_, errM := discord.ChannelMessageSend(channelID, "Сорян, накосячил. Автокрутки отключены")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+		}
+		err := fmt.Errorf("autorolls disabled")
+		return nil, err
+	}
+
 	ev, err := c.db.FindEvent(ctx, guildID, database.GameEventName)
 	if err != nil && err.Error() != database.EventAlreadyExistError {
 		c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't find event")
@@ -172,6 +191,47 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
 	}
 	return &event, nil
+}
+
+func (c *Commands) ChangeAutoRoll(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
+	c.log.Info().Msg("[commands.DisableAutoRoll]triggered")
+
+	data, err := c.db.GetBotData(ctx, message.GuildID)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.DisableAutoRoll]Error. Can't get bot data")
+		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
+		if errM != nil {
+			c.log.Err(err).Msg("[commends.DisableAutoRoll]error on channelMessageSend")
+			return
+		}
+		return
+	}
+
+	data.IsAutoRollEnabled = !data.IsAutoRollEnabled
+	err = c.db.ChangeBotData(ctx, data)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.DisableAutoRoll]Error. Can't change bot data")
+		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
+		if errM != nil {
+			c.log.Err(err).Msg("[commends.DisableAutoRoll]error on channelMessageSend")
+			return
+		}
+		return
+	}
+
+	status := ""
+	if data.IsAutoRollEnabled {
+		status = "включены"
+	} else {
+		status = "отключены"
+	}
+
+	text := fmt.Sprintf("Теперь автокрутки %s", status)
+	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
+	if errM != nil {
+		c.log.Err(err).Msg("[commends.DisableAutoRoll]error on channelMessageSend")
+		return
+	}
 }
 
 func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {

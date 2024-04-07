@@ -17,6 +17,8 @@ type Game interface {
 	// else
 	// say to user that you can't do that
 	Who(сtx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) (*database.EventData, error)
+	// disable autoroll in game
+	ChangeAutoRoll(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate)
 	// adds new player in game db
 	// TODO make it possible to add users by mention and UserID
 	AddPlayer(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate)

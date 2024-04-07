@@ -43,7 +43,7 @@ func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.Me
 	var game command.Game
 	var admin command.Admin
 
-	if GameEnabled {
+	if GameEnabled && data.IsGameEnabled {
 		game = t.commands
 	}
 	if AdminEnabled {
@@ -64,11 +64,17 @@ func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.Me
 			if err != nil {
 				return
 			}
-			t.OnEventCreation(ctx, discord, event)
+			if data.IsAutoRollEnabled {
+				t.OnEventCreation(ctx, discord, event)
+			}
 		}
 	case strings.HasPrefix(message.Content, prefix+"списокпидоров") || strings.HasPrefix(message.Content, prefix+"топпидоров"):
 		if game != nil {
 			game.List(ctx, discord, message)
+		}
+	case strings.HasPrefix(message.Content, prefix+"disableautoroll") || strings.HasPrefix(message.Content, prefix+"changeautoroll"):
+		if game != nil {
+			game.ChangeAutoRoll(ctx, discord, message)
 		}
 	case strings.HasPrefix(message.Content, prefix+"пидордня"):
 		if game != nil {

@@ -148,12 +148,38 @@ func (DB *Database) GetBotData(ctx context.Context, guildID string) (*database.B
 	return result, nil
 }
 
+func (DB *Database) ChangeBotData(ctx context.Context, data *database.BotData) error {
+	if DB.c == nil {
+		err := fmt.Errorf("error. Database client not found")
+		return err
+	}
+
+	opts := options.Replace().SetUpsert(true)
+	c := DB.c.Database(BotDBName).Collection(DataCollectionName)
+	filter := bson.D{{Key: "guildID", Value: data.GuildID}}
+
+	result, err := c.ReplaceOne(ctx, filter, data, opts)
+	if err != nil {
+		return err
+	}
+
+	DB.log.Debug().Msgf("[mongodb.ChangeBotData]Matched %v documents and updated %v documents.", result.MatchedCount, result.ModifiedCount)
+
+	err = DB.UpdateBotData(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (DB *Database) CreateBotData(ctx context.Context, guildID string) (*database.BotData, error) {
 	// Default bot data
 	data := &database.BotData{
-		GuildID:       guildID,
-		IsGameEnabled: true,
-		BotPrefix:     trigger.DefaultPrefix,
+		GuildID:           guildID,
+		IsGameEnabled:     true,
+		IsAutoRollEnabled: true,
+		BotPrefix:         trigger.DefaultPrefix,
 	}
 
 	if DB.c == nil {

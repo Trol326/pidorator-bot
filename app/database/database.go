@@ -23,6 +23,7 @@ type Database interface {
 	Disconnect(context.Context)
 	// Returns config data for this guildID
 	GetBotData(ctx context.Context, guildID string) (*BotData, error)
+	ChangeBotData(ctx context.Context, data *BotData) error
 	AddPlayer(ctx context.Context, data *PlayerData) error
 	GetAllPlayers(ctx context.Context, guildID string, sortingType int) ([]*PlayerData, error)
 	// Adds new event, updates it if event already exist
@@ -55,10 +56,11 @@ type EventData struct {
 }
 
 type BotData struct {
-	GuildID       string `bson:"guildID"`
-	GameChannelID string `bson:"gameChannelID,omitempty"`
-	BotPrefix     string `bson:"botPrefix,omitempty"`
-	IsGameEnabled bool   `bson:"isGameEnabled,omitempty"`
+	GuildID           string `bson:"guildID"`
+	GameChannelID     string `bson:"gameChannelID,omitempty"`
+	BotPrefix         string `bson:"botPrefix,omitempty"`
+	IsGameEnabled     bool   `bson:"isGameEnabled"`
+	IsAutoRollEnabled bool   `bson:"isAutoRollEnabled"`
 }
 
 func (d *PlayerData) String() string {
@@ -67,6 +69,10 @@ func (d *PlayerData) String() string {
 
 func (d *EventData) String() string {
 	return fmt.Sprintf("{GuildID: %s, ChannelID: %s, Type: %s, StartTime: %d, EndTime: %d}", d.GuildID, d.ChannelID, d.Type, d.StartTime, d.EndTime)
+}
+
+func (d *BotData) String() string {
+	return fmt.Sprintf("{GuildID: %s, GameChannelID: %s, BotPrefix: %s}", d.GuildID, d.GameChannelID, d.BotPrefix)
 }
 
 func (d EventData) IsEventEnded(now ...int64) bool {
