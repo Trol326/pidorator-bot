@@ -6,6 +6,7 @@ import (
 	"os"
 	"pidorator-bot/app/bot/trigger"
 	"pidorator-bot/app/database"
+	"pidorator-bot/app/database/model"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -17,7 +18,7 @@ import (
 type Database struct {
 	c       *mongo.Client
 	log     *zerolog.Logger
-	botData map[string]*database.BotData
+	botData map[string]*model.BotData
 }
 
 const (
@@ -91,20 +92,20 @@ func (DB *Database) Disconnect(ctx context.Context) {
 
 func (DB *Database) UpdateBotData(ctx context.Context) error {
 	if DB.botData == nil {
-		DB.botData = make(map[string]*database.BotData)
+		DB.botData = make(map[string]*model.BotData)
 	}
 
 	// Get all bot data from DB
 	c := DB.c.Database(BotDBName).Collection(DataCollectionName)
 	findOptions := options.Find()
-	var results []*database.BotData
+	var results []*model.BotData
 	cur, err := c.Find(ctx, bson.D{}, findOptions)
 	if err != nil {
 		return err
 	}
 	defer cur.Close(ctx)
 	for cur.Next(ctx) {
-		var elem database.BotData
+		var elem model.BotData
 		err := cur.Decode(&elem)
 		if err != nil {
 			DB.log.Error().Err(err).Msg("[mongodb.UpdateBotData.cur.next]")
@@ -124,8 +125,8 @@ func (DB *Database) UpdateBotData(ctx context.Context) error {
 	return nil
 }
 
-func (DB *Database) GetBotData(ctx context.Context, guildID string) (*database.BotData, error) {
-	result := &database.BotData{}
+func (DB *Database) GetBotData(ctx context.Context, guildID string) (*model.BotData, error) {
+	result := &model.BotData{}
 
 	if DB.botData == nil {
 		DB.log.Debug().Msg("[mongodb.GetBotData]data map not found")
@@ -148,7 +149,7 @@ func (DB *Database) GetBotData(ctx context.Context, guildID string) (*database.B
 	return result, nil
 }
 
-func (DB *Database) ChangeBotData(ctx context.Context, data *database.BotData) error {
+func (DB *Database) ChangeBotData(ctx context.Context, data *model.BotData) error {
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
 		return err
@@ -173,9 +174,9 @@ func (DB *Database) ChangeBotData(ctx context.Context, data *database.BotData) e
 	return nil
 }
 
-func (DB *Database) CreateBotData(ctx context.Context, guildID string) (*database.BotData, error) {
+func (DB *Database) CreateBotData(ctx context.Context, guildID string) (*model.BotData, error) {
 	// Default bot data
-	data := &database.BotData{
+	data := &model.BotData{
 		GuildID:           guildID,
 		IsGameEnabled:     true,
 		IsAutoRollEnabled: true,
@@ -184,7 +185,7 @@ func (DB *Database) CreateBotData(ctx context.Context, guildID string) (*databas
 
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
-		return &database.BotData{}, err
+		return &model.BotData{}, err
 	}
 
 	c := DB.c.Database(BotDBName).Collection(DataCollectionName)
@@ -192,36 +193,36 @@ func (DB *Database) CreateBotData(ctx context.Context, guildID string) (*databas
 	findOptions := options.FindOne()
 	filter := bson.D{{Key: "guildID", Value: data.GuildID}}
 
-	d := database.BotData{}
+	d := model.BotData{}
 	err := c.FindOne(ctx, filter, findOptions).Decode(&d)
 	if err != nil && err.Error() != ErrorNotExist {
-		return &database.BotData{}, err
+		return &model.BotData{}, err
 	}
 	if d.GuildID != "" {
 		err := fmt.Errorf(database.DataAlreadyExistError)
-		return &database.BotData{}, err
+		return &model.BotData{}, err
 	}
 
 	result, err := c.InsertOne(ctx, data)
 	if err != nil {
-		return &database.BotData{}, err
+		return &model.BotData{}, err
 	}
 
 	if result == nil {
 		err := fmt.Errorf("error. Data not created")
-		return &database.BotData{}, err
+		return &model.BotData{}, err
 	}
 
 	// Update map
 	err = DB.UpdateBotData(ctx)
 	if err != nil {
-		return &database.BotData{}, err
+		return &model.BotData{}, err
 	}
 
 	return data, nil
 }
 
-func (DB *Database) AddPlayer(ctx context.Context, data *database.PlayerData) error {
+func (DB *Database) AddPlayer(ctx context.Context, data *model.PlayerData) error {
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
 		return err
@@ -251,7 +252,7 @@ func (DB *Database) AddPlayer(ctx context.Context, data *database.PlayerData) er
 	return nil
 }
 
-func (DB *Database) AddEvent(ctx context.Context, data *database.EventData) error {
+func (DB *Database) AddEvent(ctx context.Context, data *model.EventData) error {
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
 		return err
@@ -284,7 +285,7 @@ func (DB *Database) AddEvent(ctx context.Context, data *database.EventData) erro
 	return nil
 }
 
-func (DB *Database) UpdateEvent(ctx context.Context, data *database.EventData) error {
+func (DB *Database) UpdateEvent(ctx context.Context, data *model.EventData) error {
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
 		return err
@@ -304,17 +305,17 @@ func (DB *Database) UpdateEvent(ctx context.Context, data *database.EventData) e
 	return nil
 }
 
-func (DB *Database) GetEvents(ctx context.Context, guildID string) ([]*database.EventData, error) {
+func (DB *Database) GetEvents(ctx context.Context, guildID string) ([]*model.EventData, error) {
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
-		return []*database.EventData{}, err
+		return []*model.EventData{}, err
 	}
 
 	c := DB.c.Database(BotDBName).Collection(EventCollectionName)
 
 	findOptions := options.Find().SetSort(bson.D{{Key: "startTime", Value: -1}})
 
-	var results []*database.EventData
+	var results []*model.EventData
 
 	filter := bson.D{}
 	if guildID != "" {
@@ -323,12 +324,12 @@ func (DB *Database) GetEvents(ctx context.Context, guildID string) ([]*database.
 
 	cur, err := c.Find(ctx, filter, findOptions)
 	if err != nil {
-		return []*database.EventData{}, err
+		return []*model.EventData{}, err
 	}
 	defer cur.Close(ctx)
 
 	for cur.Next(ctx) {
-		var elem database.EventData
+		var elem model.EventData
 		err := cur.Decode(&elem)
 		if err != nil {
 			DB.log.Error().Err(err).Msg("[mongodb.GetEvents.cur.next]")
@@ -336,7 +337,7 @@ func (DB *Database) GetEvents(ctx context.Context, guildID string) ([]*database.
 		results = append(results, &elem)
 	}
 	if err := cur.Err(); err != nil {
-		return []*database.EventData{}, err
+		return []*model.EventData{}, err
 	}
 
 	DB.log.Debug().Msgf("[mongodb.GetEvents]Found multiple documents(%d). Array of pointers: %+v", len(results), results)
@@ -344,10 +345,10 @@ func (DB *Database) GetEvents(ctx context.Context, guildID string) ([]*database.
 	return results, nil
 }
 
-func (DB *Database) GetAllPlayers(ctx context.Context, guildID string, sortingType int) ([]*database.PlayerData, error) {
+func (DB *Database) GetAllPlayers(ctx context.Context, guildID string, sortingType int) ([]*model.PlayerData, error) {
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
-		return []*database.PlayerData{}, err
+		return []*model.PlayerData{}, err
 	}
 
 	c := DB.c.Database(BotDBName).Collection(GameCollectionName)
@@ -357,16 +358,16 @@ func (DB *Database) GetAllPlayers(ctx context.Context, guildID string, sortingTy
 		findOptions = findOptions.SetSort(bson.D{{Key: "score", Value: sortingType}})
 	}
 
-	var results []*database.PlayerData
+	var results []*model.PlayerData
 
 	cur, err := c.Find(ctx, bson.D{{Key: "guildID", Value: guildID}}, findOptions)
 	if err != nil {
-		return []*database.PlayerData{}, err
+		return []*model.PlayerData{}, err
 	}
 	defer cur.Close(ctx)
 
 	for cur.Next(ctx) {
-		var elem database.PlayerData
+		var elem model.PlayerData
 		err := cur.Decode(&elem)
 		if err != nil {
 			DB.log.Error().Err(err).Msg("[mongodb.GetAllPlayers.cur.next]")
@@ -374,7 +375,7 @@ func (DB *Database) GetAllPlayers(ctx context.Context, guildID string, sortingTy
 		results = append(results, &elem)
 	}
 	if err := cur.Err(); err != nil {
-		return []*database.PlayerData{}, err
+		return []*model.PlayerData{}, err
 	}
 
 	DB.log.Debug().Msgf("[mongodb.GetAllPlayers]Found multiple documents(%d). Array of pointers: %+v", len(results), results)
@@ -382,8 +383,8 @@ func (DB *Database) GetAllPlayers(ctx context.Context, guildID string, sortingTy
 	return results, nil
 }
 
-func (DB *Database) FindPlayer(ctx context.Context, guildID string, userID string) (*database.PlayerData, error) {
-	result := database.PlayerData{}
+func (DB *Database) FindPlayer(ctx context.Context, guildID string, userID string) (*model.PlayerData, error) {
+	result := model.PlayerData{}
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
 		return &result, err
@@ -397,15 +398,15 @@ func (DB *Database) FindPlayer(ctx context.Context, guildID string, userID strin
 
 	err := c.FindOne(ctx, filter, findOptions).Decode(&result)
 	if err != nil {
-		return &database.PlayerData{}, err
+		return &model.PlayerData{}, err
 	}
 	DB.log.Debug().Msgf("[mongodb.FindPlayer]Player finded: %v", result)
 
 	return &result, nil
 }
 
-func (DB *Database) FindEvent(ctx context.Context, guildID string, eventType string) (*database.EventData, error) {
-	result := database.EventData{}
+func (DB *Database) FindEvent(ctx context.Context, guildID string, eventType string) (*model.EventData, error) {
+	result := model.EventData{}
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
 		return &result, err
@@ -419,7 +420,7 @@ func (DB *Database) FindEvent(ctx context.Context, guildID string, eventType str
 
 	err := c.FindOne(ctx, filter, findOptions).Decode(&result)
 	if err != nil {
-		return &database.EventData{}, err
+		return &model.EventData{}, err
 	}
 
 	DB.log.Debug().Msgf("[mongodb.FindEvent]Event finded: %v", result)
@@ -447,7 +448,7 @@ func (DB *Database) IncreasePlayerScore(ctx context.Context, guildID string, use
 	return nil
 }
 
-func (DB *Database) UpdatePlayersData(ctx context.Context, data []*database.PlayerData) error {
+func (DB *Database) UpdatePlayersData(ctx context.Context, data []*model.PlayerData) error {
 	if DB.c == nil {
 		err := fmt.Errorf("error. Database client not found")
 		return err

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"pidorator-bot/app/database"
+	"pidorator-bot/app/database/model"
 )
 
 func (c *Client) InitTimers(ctx context.Context) {
@@ -25,7 +26,7 @@ func (c *Client) InitTimers(ctx context.Context) {
 
 		text := fmt.Sprintf("timer_%s_%s", event.Type, event.GuildID)
 		t, name := c.Timers.New(text, event.SecondsUntilEnd())
-		go func(e database.EventData) {
+		go func(e model.EventData) {
 			<-t.C
 			c.Timers.StopByName(name)
 			c.Triggers.OnTimerEnded(ctx, c.Session, e.GuildID, e.ChannelID, e.Type)

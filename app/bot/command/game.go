@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"math/rand"
 	"pidorator-bot/app/database"
+	"pidorator-bot/app/database/model"
 	"pidorator-bot/tools"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, guildID string, channelID string) (*database.EventData, error) {
+func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, guildID string, channelID string) (*model.EventData, error) {
 	c.log.Info().Msg("[commands.Autoroll]triggered")
 
 	data, err := c.db.GetBotData(ctx, guildID)
@@ -75,7 +76,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 
 	startTime := time.Now()
 	endTime := startTime.Add(time.Hour * 24)
-	event := database.EventData{
+	event := model.EventData{
 		GuildID:   guildID,
 		ChannelID: channelID,
 		Type:      database.GameEventName,
@@ -111,7 +112,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 	return &event, nil
 }
 
-func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) (*database.EventData, error) {
+func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) (*model.EventData, error) {
 	c.log.Info().Msg("[commands.Who]triggered")
 
 	ev, err := c.db.FindEvent(ctx, message.GuildID, database.GameEventName)
@@ -157,7 +158,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 
 	startTime := time.Now()
 	endTime := startTime.Add(time.Hour * 24)
-	event := database.EventData{
+	event := model.EventData{
 		GuildID:   message.GuildID,
 		ChannelID: message.ChannelID,
 		Type:      database.GameEventName,
@@ -241,7 +242,7 @@ func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, me
 	// hack coz member.user in message.member is nil
 	member.User = message.Author
 	nickname := getNickname(member)
-	data := database.PlayerData{GuildID: message.GuildID, UserID: message.Author.ID, Username: nickname}
+	data := model.PlayerData{GuildID: message.GuildID, UserID: message.Author.ID, Username: nickname}
 
 	err := c.db.AddPlayer(ctx, &data)
 	if err != nil {
@@ -350,7 +351,7 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 		c.log.Err(errM).Msg("[commends.UpdatePlayersData]error on channelMessageSend")
 	}
 
-	players := make([]*database.PlayerData, 0, len(allPlayers))
+	players := make([]*model.PlayerData, 0, len(allPlayers))
 	for _, player := range allPlayers {
 		u, err := discord.GuildMember(player.GuildID, player.UserID)
 		if err != nil {
@@ -360,7 +361,7 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 
 		username := getNickname(u)
 		if player.Username != username {
-			p := &database.PlayerData{GuildID: player.GuildID, UserID: player.UserID, Score: player.Score, Username: username}
+			p := &model.PlayerData{GuildID: player.GuildID, UserID: player.UserID, Score: player.Score, Username: username}
 			players = append(players, p)
 		}
 	}
@@ -387,7 +388,7 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 }
 
 // Checks is game event ended by time. True if ended, False otherwise
-func IsGameEventEnded(event *database.EventData) bool {
+func IsGameEventEnded(event *model.EventData) bool {
 	if event == nil {
 		return true
 	}
@@ -403,8 +404,8 @@ func IsGameEventEnded(event *database.EventData) bool {
 	return endTime.Before(now)
 }
 
-func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*database.PlayerData, error) {
-	result := &database.PlayerData{}
+func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*model.PlayerData, error) {
+	result := &model.PlayerData{}
 
 	players, err := c.db.GetAllPlayers(ctx, guildID, database.NoSorting)
 	if err != nil {
