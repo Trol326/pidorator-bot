@@ -8,6 +8,8 @@ type BotData struct {
 	BotPrefix         string `bson:"botPrefix,omitempty"`
 	IsGameEnabled     bool   `bson:"isGameEnabled"`
 	IsAutoRollEnabled bool   `bson:"isAutoRollEnabled"`
+	LastPidorUserID   string `bson:"lastPidorUserID"`
+	LastPidorRoleID   string `bson:"lastPidorRoleID"`
 }
 
 func (d *BotData) String() string {

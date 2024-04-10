@@ -7,6 +7,7 @@ import (
 	"pidorator-bot/app/database"
 	"pidorator-bot/app/database/model"
 	"pidorator-bot/tools"
+	"pidorator-bot/tools/roles"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -109,11 +110,40 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 	if errM != nil {
 		c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
 	}
+
+	err = c.finishRoll(ctx, discord, data, player)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.Who]error. Can't finishRoll")
+		_, errM := discord.ChannelMessageSend(channelID, "Ошибка назначения роли пидора дня")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+		}
+	}
+
 	return &event, nil
 }
 
 func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) (*model.EventData, error) {
 	c.log.Info().Msg("[commands.Who]triggered")
+
+	data, err := c.db.GetBotData(ctx, message.GuildID)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't get bot data")
+		_, errM := discord.ChannelMessageSend(message.GuildID, "Sorry, server-side error. Please contact the bot maintainer")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+		}
+		return nil, err
+	}
+
+	if !data.IsGameEnabled {
+		_, errM := discord.ChannelMessageSend(message.GuildID, "Игра отключена")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+		}
+		err := fmt.Errorf("game disabled")
+		return nil, err
+	}
 
 	ev, err := c.db.FindEvent(ctx, message.GuildID, database.GameEventName)
 	if err != nil && err.Error() != database.EventAlreadyExistError && err.Error() != c.db.NotFoundError() {
@@ -191,6 +221,16 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 	if errM != nil {
 		c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
 	}
+
+	err = c.finishRoll(ctx, discord, data, player)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.Who]error. Can't finishRoll")
+		_, errM := discord.ChannelMessageSend(message.ChannelID, "Ошибка назначения роли пидора дня")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+		}
+	}
+
 	return &event, nil
 }
 
@@ -419,6 +459,49 @@ func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*model.
 	result = players[num]
 
 	return result, nil
+}
+
+func (c *Commands) finishRoll(ctx context.Context, discord *discordgo.Session, data *model.BotData, winner *model.PlayerData) error {
+	newData := *data
+
+	if data.LastPidorRoleID == "" {
+		c.log.Debug().Msg("lastPidorRoleID not found")
+		role, err := roles.CreateRole(discord, newData.GuildID)
+		if err != nil {
+			c.log.Err(err).Msg("[commands.finishRoll]error on role creation")
+			return err
+		}
+		newData.LastPidorRoleID = role.ID
+	}
+
+	r, err := roles.GetRole(discord, newData.GuildID, newData.LastPidorRoleID)
+	if err != nil || r.ID == "" {
+		c.log.Err(err).Msg("[commands.finishRoll]error. Can't get role")
+		return err
+	}
+
+	if data.LastPidorUserID != "" && data.LastPidorRoleID != "" {
+		err := roles.DeleteUserRole(discord, data.GuildID, data.LastPidorUserID, data.LastPidorRoleID)
+		if err != nil {
+			c.log.Err(err).Msg("[commands.finishRoll]error on delete old winner role")
+			return err
+		}
+	}
+
+	err = roles.SetUserRole(discord, newData.GuildID, winner.UserID, newData.LastPidorRoleID)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.finishRoll]error on SetUserRole")
+		return err
+	}
+	newData.LastPidorUserID = winner.UserID
+
+	err = c.db.ChangeBotData(ctx, &newData)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.finishRoll]error on changeBotData")
+		return err
+	}
+
+	return nil
 }
 
 func getNickname(member *discordgo.Member) string {
