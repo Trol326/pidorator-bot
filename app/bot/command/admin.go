@@ -13,6 +13,6 @@ func (c *Commands) BotRename(ctx context.Context, discord *discordgo.Session, me
 	text := fmt.Sprintf("Ты пидор, %s <:MumeiYou:1192139708222935050>", message.Author.Mention())
 	_, err := discord.ChannelMessageSend(message.ChannelID, text)
 	if err != nil {
-		c.log.Err(err).Msg("[commends.botrename]error on channelMessageSend")
+		c.log.Err(err).Msg("[commands.botrename]error on channelMessageSend")
 	}
 }

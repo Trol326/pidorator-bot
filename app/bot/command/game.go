@@ -21,7 +21,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		c.log.Error().Err(err).Msgf("[commands.DisableAutoRoll]Error. Can't get bot data")
 		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 	if !data.IsAutoRollEnabled {
 		_, errM := discord.ChannelMessageSend(channelID, "Сорян, накосячил. Автокрутки отключены")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		err := fmt.Errorf("autorolls disabled")
 		return nil, err
@@ -40,7 +40,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't find event")
 		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		text := fmt.Sprintf("Накосячил, ещё рано. В предыдущий раз крутили %s", tools.ToDiscordTimeStamp(ev.StartTime, tools.TSFormat().Relative))
 		_, errM := discord.ChannelMessageSend(channelID, text)
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		err := fmt.Errorf("event not ended")
 		return nil, err
@@ -60,7 +60,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't get player")
 		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't increase player score")
 		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't add event")
 		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 			c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't update event")
 			_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 			if errM != nil {
-				c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+				c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 			}
 			return nil, err
 		}
@@ -108,7 +108,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 	text := fmt.Sprintf("%s, ты пидор <:MumeiYou:1192139708222935050>", tools.UserIDToMention(player.UserID))
 	_, errM := discord.ChannelMessageSend(channelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 	}
 
 	err = c.finishRoll(ctx, discord, data, player)
@@ -150,7 +150,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't find event")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(err).Msg("[commends.Who]error on channelMessageSend")
+			c.log.Err(err).Msg("[commands.Who]error on channelMessageSend")
 			return nil, errM
 		}
 		return nil, err
@@ -160,7 +160,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		text := fmt.Sprintf("Да ты погоди, %s, время ещё не пришло. В предыдущий раз крутили %s", message.Author.GlobalName, tools.ToDiscordTimeStamp(ev.StartTime, tools.TSFormat().Relative))
 		_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 		}
 		err = fmt.Errorf("event not ended")
 		return nil, err
@@ -171,7 +171,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't get player")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't increase player score")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -200,7 +200,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't add event")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 			c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't update event")
 			_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 			if errM != nil {
-				c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+				c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 			}
 			return nil, err
 		}
@@ -219,7 +219,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 	text := fmt.Sprintf("%s, ты пидор <:MumeiYou:1192139708222935050>", tools.UserIDToMention(player.UserID))
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 	}
 
 	err = c.finishRoll(ctx, discord, data, player)
@@ -242,7 +242,7 @@ func (c *Commands) ChangeAutoRoll(ctx context.Context, discord *discordgo.Sessio
 		c.log.Error().Err(err).Msgf("[commands.DisableAutoRoll]Error. Can't get bot data")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(err).Msg("[commends.DisableAutoRoll]error on channelMessageSend")
+			c.log.Err(err).Msg("[commands.DisableAutoRoll]error on channelMessageSend")
 			return
 		}
 		return
@@ -254,7 +254,7 @@ func (c *Commands) ChangeAutoRoll(ctx context.Context, discord *discordgo.Sessio
 		c.log.Error().Err(err).Msgf("[commands.DisableAutoRoll]Error. Can't change bot data")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(err).Msg("[commends.DisableAutoRoll]error on channelMessageSend")
+			c.log.Err(err).Msg("[commands.DisableAutoRoll]error on channelMessageSend")
 			return
 		}
 		return
@@ -270,7 +270,7 @@ func (c *Commands) ChangeAutoRoll(ctx context.Context, discord *discordgo.Sessio
 	text := fmt.Sprintf("Теперь автокрутки %s", status)
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(err).Msg("[commends.DisableAutoRoll]error on channelMessageSend")
+		c.log.Err(err).Msg("[commands.DisableAutoRoll]error on channelMessageSend")
 		return
 	}
 }
@@ -291,14 +291,14 @@ func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, me
 			text := fmt.Sprintf("э, %s, куда тебе? Ты же уже участвуешь", data.Username)
 			_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 			if errM != nil {
-				c.log.Err(errM).Msg("[commends.AddPlayer]error on channelMessageSend")
+				c.log.Err(errM).Msg("[commands.AddPlayer]error on channelMessageSend")
 			}
 			return
 		}
 		c.log.Error().Err(err).Msgf("[commands.AddPlayer]Error. Can't add player")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AddPlayer]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AddPlayer]error on channelMessageSend")
 		}
 		return
 	}
@@ -306,7 +306,7 @@ func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, me
 	text := fmt.Sprintf("%s, вы приняты в пидорскую рулетку", data.Username)
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.AddPlayer]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.AddPlayer]error on channelMessageSend")
 	}
 }
 
@@ -318,7 +318,7 @@ func (c *Commands) List(ctx context.Context, discord *discordgo.Session, message
 		c.log.Error().Err(err).Msgf("[commands.List]Error. Can't get players")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.List]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.List]error on channelMessageSend")
 		}
 		return
 	}
@@ -337,7 +337,7 @@ func (c *Commands) List(ctx context.Context, discord *discordgo.Session, message
 	text := fmt.Sprintf("Топ пидоров:\n%s", top)
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.List]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.List]error on channelMessageSend")
 	}
 }
 
@@ -349,7 +349,7 @@ func (c *Commands) EventList(ctx context.Context, discord *discordgo.Session, me
 		c.log.Error().Err(err).Msgf("[commands.EventList]Error. Can't get events")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.EventList]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.EventList]error on channelMessageSend")
 		}
 		return
 	}
@@ -366,7 +366,7 @@ func (c *Commands) EventList(ctx context.Context, discord *discordgo.Session, me
 	text := fmt.Sprintf("Список запланированных на этом сервере событий:\n%s", top)
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.EventList]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.EventList]error on channelMessageSend")
 	}
 }
 
@@ -378,7 +378,7 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 		c.log.Error().Err(err).Msgf("[commands.UpdatePlayersData]Error. Can't get players")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.UpdatePlayersData]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.UpdatePlayersData]error on channelMessageSend")
 		}
 		return
 	}
@@ -388,7 +388,7 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 	text := fmt.Sprintf("Обновляю данные %d игроков...", len(allPlayers))
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.UpdatePlayersData]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.UpdatePlayersData]error on channelMessageSend")
 	}
 
 	players := make([]*model.PlayerData, 0, len(allPlayers))
@@ -411,7 +411,7 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 		c.log.Error().Err(err).Msgf("[commands.UpdatePlayersData]Error. Can't update players data")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.UpdatePlayersData]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.UpdatePlayersData]error on channelMessageSend")
 		}
 		return
 	}
@@ -423,7 +423,7 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 	}
 	_, errM = discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.UpdatePlayersData]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.UpdatePlayersData]error on channelMessageSend")
 	}
 }
 
