@@ -5,21 +5,42 @@ import (
 	"fmt"
 	"math/rand"
 	"pidorator-bot/app/database"
+	"pidorator-bot/app/database/model"
 	"pidorator-bot/tools"
+	"pidorator-bot/tools/roles"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, guildID string, channelID string) (*database.EventData, error) {
+func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, guildID string, channelID string) (*model.EventData, error) {
 	c.log.Info().Msg("[commands.Autoroll]triggered")
+
+	data, err := c.db.GetBotData(ctx, guildID)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.DisableAutoRoll]Error. Can't get bot data")
+		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
+		}
+		return nil, err
+	}
+
+	if !data.IsAutoRollEnabled {
+		_, errM := discord.ChannelMessageSend(channelID, "Сорян, накосячил. Автокрутки отключены")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
+		}
+		err := fmt.Errorf("autorolls disabled")
+		return nil, err
+	}
 
 	ev, err := c.db.FindEvent(ctx, guildID, database.GameEventName)
 	if err != nil && err.Error() != database.EventAlreadyExistError {
 		c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't find event")
 		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -28,7 +49,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		text := fmt.Sprintf("Накосячил, ещё рано. В предыдущий раз крутили %s", tools.ToDiscordTimeStamp(ev.StartTime, tools.TSFormat().Relative))
 		_, errM := discord.ChannelMessageSend(channelID, text)
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		err := fmt.Errorf("event not ended")
 		return nil, err
@@ -39,7 +60,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't get player")
 		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -49,14 +70,14 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't increase player score")
 		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		return nil, err
 	}
 
 	startTime := time.Now()
 	endTime := startTime.Add(time.Hour * 24)
-	event := database.EventData{
+	event := model.EventData{
 		GuildID:   guildID,
 		ChannelID: channelID,
 		Type:      database.GameEventName,
@@ -68,7 +89,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't add event")
 		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -78,7 +99,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 			c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't update event")
 			_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
 			if errM != nil {
-				c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+				c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 			}
 			return nil, err
 		}
@@ -87,20 +108,49 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 	text := fmt.Sprintf("%s, ты пидор <:MumeiYou:1192139708222935050>", tools.UserIDToMention(player.UserID))
 	_, errM := discord.ChannelMessageSend(channelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.AutoRoll]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 	}
+
+	err = c.finishRoll(ctx, discord, data, player)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.Who]error. Can't finishRoll")
+		_, errM := discord.ChannelMessageSend(channelID, "Ошибка назначения роли пидора дня")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+		}
+	}
+
 	return &event, nil
 }
 
-func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) (*database.EventData, error) {
+func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) (*model.EventData, error) {
 	c.log.Info().Msg("[commands.Who]triggered")
+
+	data, err := c.db.GetBotData(ctx, message.GuildID)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't get bot data")
+		_, errM := discord.ChannelMessageSend(message.GuildID, "Sorry, server-side error. Please contact the bot maintainer")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+		}
+		return nil, err
+	}
+
+	if !data.IsGameEnabled {
+		_, errM := discord.ChannelMessageSend(message.GuildID, "Игра отключена")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+		}
+		err := fmt.Errorf("game disabled")
+		return nil, err
+	}
 
 	ev, err := c.db.FindEvent(ctx, message.GuildID, database.GameEventName)
 	if err != nil && err.Error() != database.EventAlreadyExistError && err.Error() != c.db.NotFoundError() {
 		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't find event")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(err).Msg("[commends.Who]error on channelMessageSend")
+			c.log.Err(err).Msg("[commands.Who]error on channelMessageSend")
 			return nil, errM
 		}
 		return nil, err
@@ -110,7 +160,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		text := fmt.Sprintf("Да ты погоди, %s, время ещё не пришло. В предыдущий раз крутили %s", message.Author.GlobalName, tools.ToDiscordTimeStamp(ev.StartTime, tools.TSFormat().Relative))
 		_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 		}
 		err = fmt.Errorf("event not ended")
 		return nil, err
@@ -121,7 +171,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't get player")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -131,14 +181,14 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't increase player score")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 		}
 		return nil, err
 	}
 
 	startTime := time.Now()
 	endTime := startTime.Add(time.Hour * 24)
-	event := database.EventData{
+	event := model.EventData{
 		GuildID:   message.GuildID,
 		ChannelID: message.ChannelID,
 		Type:      database.GameEventName,
@@ -150,7 +200,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't add event")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 		}
 		return nil, err
 	}
@@ -160,7 +210,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 			c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't update event")
 			_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 			if errM != nil {
-				c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+				c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 			}
 			return nil, err
 		}
@@ -169,9 +219,60 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 	text := fmt.Sprintf("%s, ты пидор <:MumeiYou:1192139708222935050>", tools.UserIDToMention(player.UserID))
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.Who]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 	}
+
+	err = c.finishRoll(ctx, discord, data, player)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.Who]error. Can't finishRoll")
+		_, errM := discord.ChannelMessageSend(message.ChannelID, "Ошибка назначения роли пидора дня")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+		}
+	}
+
 	return &event, nil
+}
+
+func (c *Commands) ChangeAutoRoll(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
+	c.log.Info().Msg("[commands.DisableAutoRoll]triggered")
+
+	data, err := c.db.GetBotData(ctx, message.GuildID)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.DisableAutoRoll]Error. Can't get bot data")
+		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
+		if errM != nil {
+			c.log.Err(err).Msg("[commands.DisableAutoRoll]error on channelMessageSend")
+			return
+		}
+		return
+	}
+
+	data.IsAutoRollEnabled = !data.IsAutoRollEnabled
+	err = c.db.ChangeBotData(ctx, data)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.DisableAutoRoll]Error. Can't change bot data")
+		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
+		if errM != nil {
+			c.log.Err(err).Msg("[commands.DisableAutoRoll]error on channelMessageSend")
+			return
+		}
+		return
+	}
+
+	status := ""
+	if data.IsAutoRollEnabled {
+		status = "включены"
+	} else {
+		status = "отключены"
+	}
+
+	text := fmt.Sprintf("Теперь автокрутки %s", status)
+	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
+	if errM != nil {
+		c.log.Err(err).Msg("[commands.DisableAutoRoll]error on channelMessageSend")
+		return
+	}
 }
 
 func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
@@ -181,7 +282,7 @@ func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, me
 	// hack coz member.user in message.member is nil
 	member.User = message.Author
 	nickname := getNickname(member)
-	data := database.PlayerData{GuildID: message.GuildID, UserID: message.Author.ID, Username: nickname}
+	data := model.PlayerData{GuildID: message.GuildID, UserID: message.Author.ID, Username: nickname}
 
 	err := c.db.AddPlayer(ctx, &data)
 	if err != nil {
@@ -190,14 +291,14 @@ func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, me
 			text := fmt.Sprintf("э, %s, куда тебе? Ты же уже участвуешь", data.Username)
 			_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 			if errM != nil {
-				c.log.Err(errM).Msg("[commends.AddPlayer]error on channelMessageSend")
+				c.log.Err(errM).Msg("[commands.AddPlayer]error on channelMessageSend")
 			}
 			return
 		}
 		c.log.Error().Err(err).Msgf("[commands.AddPlayer]Error. Can't add player")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.AddPlayer]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AddPlayer]error on channelMessageSend")
 		}
 		return
 	}
@@ -205,19 +306,19 @@ func (c *Commands) AddPlayer(ctx context.Context, discord *discordgo.Session, me
 	text := fmt.Sprintf("%s, вы приняты в пидорскую рулетку", data.Username)
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.AddPlayer]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.AddPlayer]error on channelMessageSend")
 	}
 }
 
 func (c *Commands) List(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
 	c.log.Info().Msg("[commands.List]triggered")
 
-	data, err := c.db.GetAllPlayers(ctx, message.GuildID)
+	data, err := c.db.GetAllPlayers(ctx, message.GuildID, database.DcendingSorting)
 	if err != nil {
 		c.log.Error().Err(err).Msgf("[commands.List]Error. Can't get players")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.List]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.List]error on channelMessageSend")
 		}
 		return
 	}
@@ -236,7 +337,7 @@ func (c *Commands) List(ctx context.Context, discord *discordgo.Session, message
 	text := fmt.Sprintf("Топ пидоров:\n%s", top)
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.List]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.List]error on channelMessageSend")
 	}
 }
 
@@ -248,7 +349,7 @@ func (c *Commands) EventList(ctx context.Context, discord *discordgo.Session, me
 		c.log.Error().Err(err).Msgf("[commands.EventList]Error. Can't get events")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.EventList]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.EventList]error on channelMessageSend")
 		}
 		return
 	}
@@ -265,19 +366,19 @@ func (c *Commands) EventList(ctx context.Context, discord *discordgo.Session, me
 	text := fmt.Sprintf("Список запланированных на этом сервере событий:\n%s", top)
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.EventList]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.EventList]error on channelMessageSend")
 	}
 }
 
 func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) {
 	c.log.Info().Msg("[commands.UpdatePlayersData]triggered")
 
-	allPlayers, err := c.db.GetAllPlayers(ctx, message.GuildID)
+	allPlayers, err := c.db.GetAllPlayers(ctx, message.GuildID, database.NoSorting)
 	if err != nil {
 		c.log.Error().Err(err).Msgf("[commands.UpdatePlayersData]Error. Can't get players")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.UpdatePlayersData]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.UpdatePlayersData]error on channelMessageSend")
 		}
 		return
 	}
@@ -287,10 +388,10 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 	text := fmt.Sprintf("Обновляю данные %d игроков...", len(allPlayers))
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.UpdatePlayersData]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.UpdatePlayersData]error on channelMessageSend")
 	}
 
-	players := make([]*database.PlayerData, 0, len(allPlayers))
+	players := make([]*model.PlayerData, 0, len(allPlayers))
 	for _, player := range allPlayers {
 		u, err := discord.GuildMember(player.GuildID, player.UserID)
 		if err != nil {
@@ -300,7 +401,7 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 
 		username := getNickname(u)
 		if player.Username != username {
-			p := &database.PlayerData{GuildID: player.GuildID, UserID: player.UserID, Score: player.Score, Username: username}
+			p := &model.PlayerData{GuildID: player.GuildID, UserID: player.UserID, Score: player.Score, Username: username}
 			players = append(players, p)
 		}
 	}
@@ -310,7 +411,7 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 		c.log.Error().Err(err).Msgf("[commands.UpdatePlayersData]Error. Can't update players data")
 		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commends.UpdatePlayersData]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.UpdatePlayersData]error on channelMessageSend")
 		}
 		return
 	}
@@ -322,12 +423,12 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 	}
 	_, errM = discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
-		c.log.Err(errM).Msg("[commends.UpdatePlayersData]error on channelMessageSend")
+		c.log.Err(errM).Msg("[commands.UpdatePlayersData]error on channelMessageSend")
 	}
 }
 
 // Checks is game event ended by time. True if ended, False otherwise
-func IsGameEventEnded(event *database.EventData) bool {
+func IsGameEventEnded(event *model.EventData) bool {
 	if event == nil {
 		return true
 	}
@@ -343,10 +444,10 @@ func IsGameEventEnded(event *database.EventData) bool {
 	return endTime.Before(now)
 }
 
-func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*database.PlayerData, error) {
-	result := &database.PlayerData{}
+func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*model.PlayerData, error) {
+	result := &model.PlayerData{}
 
-	players, err := c.db.GetAllPlayers(ctx, guildID)
+	players, err := c.db.GetAllPlayers(ctx, guildID, database.NoSorting)
 	if err != nil {
 		return result, err
 	}
@@ -358,6 +459,49 @@ func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*databa
 	result = players[num]
 
 	return result, nil
+}
+
+func (c *Commands) finishRoll(ctx context.Context, discord *discordgo.Session, data *model.BotData, winner *model.PlayerData) error {
+	newData := *data
+
+	if data.LastPidorRoleID == "" {
+		c.log.Debug().Msg("lastPidorRoleID not found")
+		role, err := roles.CreateRole(discord, newData.GuildID)
+		if err != nil {
+			c.log.Err(err).Msg("[commands.finishRoll]error on role creation")
+			return err
+		}
+		newData.LastPidorRoleID = role.ID
+	}
+
+	r, err := roles.GetRole(discord, newData.GuildID, newData.LastPidorRoleID)
+	if err != nil || r.ID == "" {
+		c.log.Err(err).Msg("[commands.finishRoll]error. Can't get role")
+		return err
+	}
+
+	if data.LastPidorUserID != "" && data.LastPidorRoleID != "" {
+		err := roles.DeleteUserRole(discord, data.GuildID, data.LastPidorUserID, data.LastPidorRoleID)
+		if err != nil {
+			c.log.Err(err).Msg("[commands.finishRoll]error on delete old winner role")
+			return err
+		}
+	}
+
+	err = roles.SetUserRole(discord, newData.GuildID, winner.UserID, newData.LastPidorRoleID)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.finishRoll]error on SetUserRole")
+		return err
+	}
+	newData.LastPidorUserID = winner.UserID
+
+	err = c.db.ChangeBotData(ctx, &newData)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.finishRoll]error on changeBotData")
+		return err
+	}
+
+	return nil
 }
 
 func getNickname(member *discordgo.Member) string {

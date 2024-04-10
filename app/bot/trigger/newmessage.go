@@ -20,18 +20,30 @@ Trigger when user send new message on server. Only in available for bot channels
 TODO maybe make trigger for game and for admin(?)
 */
 func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
-	if message.Author.ID == discord.State.User.ID || !strings.HasPrefix(message.Content, DefaultPrefix) {
+	if message.Author.ID == discord.State.User.ID {
+		return
+	}
+
+	var prefix string
+	ctx := context.Background()
+	data, err := t.commands.GetBotData(ctx, message.GuildID)
+	if err != nil {
+		t.Log.Err(err).Msg("[trigger.OnNewMessage]error on getbotdata")
+		prefix = DefaultPrefix
+	} else {
+		prefix = data.BotPrefix
+	}
+
+	if !strings.HasPrefix(message.Content, prefix) {
 		return
 	}
 
 	t.Log.Info().Msgf("Got %s", message.Content)
 
-	ctx := context.Background()
-
 	var game command.Game
 	var admin command.Admin
 
-	if GameEnabled {
+	if GameEnabled && data.IsGameEnabled {
 		game = t.commands
 	}
 	if AdminEnabled {
@@ -39,38 +51,44 @@ func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.Me
 	}
 
 	switch {
-	case strings.HasPrefix(message.Content, DefaultPrefix+"help"):
+	case strings.HasPrefix(message.Content, prefix+"help"):
 		// TODO autodoc for help command
 		_, err := discord.ChannelMessageSend(message.ChannelID, "Документация будет позже :D")
 		if err != nil {
 			t.Log.Err(err).Msg("[trigger.OnNewMessage]error on channelMessageSend")
 			return
 		}
-	case strings.HasPrefix(message.Content, DefaultPrefix+"ктопидор"):
+	case strings.HasPrefix(message.Content, prefix+"ктопидор"):
 		if game != nil {
 			event, err := game.Who(ctx, discord, message)
 			if err != nil {
 				return
 			}
-			t.OnEventCreation(ctx, discord, event)
+			if data.IsAutoRollEnabled {
+				t.OnEventCreation(ctx, discord, event)
+			}
 		}
-	case strings.HasPrefix(message.Content, DefaultPrefix+"списокпидоров") || strings.HasPrefix(message.Content, DefaultPrefix+"топпидоров"):
+	case strings.HasPrefix(message.Content, prefix+"списокпидоров") || strings.HasPrefix(message.Content, prefix+"топпидоров"):
 		if game != nil {
 			game.List(ctx, discord, message)
 		}
-	case strings.HasPrefix(message.Content, DefaultPrefix+"пидордня"):
+	case strings.HasPrefix(message.Content, prefix+"disableautoroll") || strings.HasPrefix(message.Content, prefix+"changeautoroll"):
+		if game != nil {
+			game.ChangeAutoRoll(ctx, discord, message)
+		}
+	case strings.HasPrefix(message.Content, prefix+"пидордня"):
 		if game != nil {
 			game.AddPlayer(ctx, discord, message)
 		}
-	case strings.HasPrefix(message.Content, DefaultPrefix+"обновитьпидоров"):
+	case strings.HasPrefix(message.Content, prefix+"обновитьпидоров"):
 		if game != nil {
 			game.UpdatePlayersData(ctx, discord, message)
 		}
-	case strings.HasPrefix(message.Content, DefaultPrefix+"списоксобытий"):
+	case strings.HasPrefix(message.Content, prefix+"списоксобытий"):
 		if game != nil {
 			game.EventList(ctx, discord, message)
 		}
-	case strings.HasPrefix(message.Content, DefaultPrefix+"botrename"):
+	case strings.HasPrefix(message.Content, prefix+"botrename"):
 		if admin != nil {
 			admin.BotRename(ctx, discord, message)
 		}

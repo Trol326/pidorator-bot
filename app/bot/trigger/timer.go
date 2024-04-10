@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"pidorator-bot/app/database"
+	"pidorator-bot/app/database/model"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -30,7 +31,7 @@ func (t *Trigger) OnTimerEnded(ctx context.Context, discord *discordgo.Session, 
 	}
 }
 
-func (t *Trigger) OnEventCreation(ctx context.Context, discord *discordgo.Session, event *database.EventData) {
+func (t *Trigger) OnEventCreation(ctx context.Context, discord *discordgo.Session, event *model.EventData) {
 	if event == nil {
 		t.Log.Info().Msgf("Event is nil. Timer creation canceled")
 		return
