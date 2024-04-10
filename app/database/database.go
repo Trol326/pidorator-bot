@@ -35,7 +35,7 @@ type Database interface {
 
 	/* Events */
 
-	// Creates new event, updates it if event already exist
+	// Creates new event
 	AddEvent(ctx context.Context, data *model.EventData) error
 	// Updates event in database
 	UpdateEvent(ctx context.Context, data *model.EventData) error
