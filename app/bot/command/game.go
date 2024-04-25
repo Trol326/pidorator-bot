@@ -13,6 +13,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+const (
+	DefaultLastPiRoleName string = "Пидор дня"
+)
 func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, guildID string, channelID string) (*model.EventData, error) {
 	c.log.Info().Msg("[commands.Autoroll]triggered")
 

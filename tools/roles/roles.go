@@ -2,9 +2,9 @@ package roles
 
 import "github.com/bwmarrin/discordgo"
 
-func CreateRole(discord *discordgo.Session, guildID string) (*discordgo.Role, error) {
+func CreateRole(discord *discordgo.Session, guildID, name string) (*discordgo.Role, error) {
 	params := &discordgo.RoleParams{
-		Name: "Пидор дня",
+		Name: name,
 	}
 
 	role, err := discord.GuildRoleCreate(guildID, params)
