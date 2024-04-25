@@ -1,5 +1,5 @@
 start:
-	go run main.go
+	go run app/main.go
 
 .PHONY: tidy
 tidy:
@@ -21,6 +21,12 @@ gen-dockerfile:
 .PHONY: build-image
 build-image:
 	docker build -t bot:v1 .
+
+db/up:
+	docker-compose -f docker-compose-db.dev.yml up -d
+
+db/down:
+	docker-compose -f docker-compose-db.dev.yml down
 
 .PHONY: install-lint
 install-lint:

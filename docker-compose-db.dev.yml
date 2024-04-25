@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  mongodb_container:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: db
+      MONGO_INITDB_ROOT_PASSWORD: db
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb_data_container:/data/db
+    deploy:
+      placement:
+        max_replicas_per_node: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  mongodb_data_container:
