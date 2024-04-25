@@ -452,10 +452,7 @@ func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*model.
 		return result, err
 	}
 
-	i := len(players)
-	random := rand.New(rand.NewSource(time.Now().Unix()))
-	num := random.Int31n(int32(i))
-
+	num := tools.GetRandomInt32(len(players))
 	result = players[num]
 
 	return result, nil
