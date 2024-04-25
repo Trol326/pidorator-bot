@@ -9,6 +9,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	ErrorNoPermission string = "HTTP 403 Forbidden, {\"message\": \"Missing Permissions\", \"code\": 50013}"
+	ErrorNoAccess     string = "HTTP 403 Forbidden, {\"message\": \"Missing Access\", \"code\": 50001}"
+)
+
 // Interface of commands for rolls
 type Game interface {
 	// main command for the game
