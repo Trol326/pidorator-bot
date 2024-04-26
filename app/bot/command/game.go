@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"pidorator-bot/app/bot/content"
 	"pidorator-bot/app/database"
 	"pidorator-bot/app/database/model"
 	"pidorator-bot/tools"
@@ -16,6 +17,8 @@ import (
 const (
 	DefaultLastPiRoleName string = "Пидор дня"
 )
+
+// TODO refactor and make autoroll and who same func
 func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, guildID string, channelID string) (*model.EventData, error) {
 	c.log.Info().Msg("[commands.Autoroll]triggered")
 
@@ -58,6 +61,16 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		return nil, err
 	}
 
+	err = tease(discord, channelID)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.AutoRoll]Error. Can't tease")
+		_, errM := discord.ChannelMessageSend(channelID, "Sorry, server-side error. Please contact the bot maintainer")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
+		}
+		return nil, err
+	}
+
 	player, err := c.getRandomPlayer(ctx, guildID)
 	if err != nil {
 		c.log.Error().Err(err).Msgf("[commands.Autoroll]Error. Can't get player")
@@ -96,6 +109,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		}
 		return nil, err
 	}
+	// TODO refactor this
 	if err.Error() == database.EventAlreadyExistError {
 		err := c.db.UpdateEvent(ctx, &event)
 		if err != nil {
@@ -108,24 +122,25 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 		}
 	}
 
-	text := fmt.Sprintf("%s, ты пидор <:MumeiYou:1192139708222935050>", tools.UserIDToMention(player.UserID))
-	_, errM := discord.ChannelMessageSend(channelID, text)
-	if errM != nil {
-		c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
+	err = resultMessage(discord, channelID, player.UserID)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.AutoRoll]error on channelMessageSend")
+		return nil, err
 	}
 
 	err = c.finishRoll(ctx, discord, data, player)
 	if err != nil {
-		c.log.Err(err).Msg("[commands.Who]error. Can't finishRoll")
+		c.log.Err(err).Msg("[commands.AutoRoll]error. Can't finishRoll")
 		_, errM := discord.ChannelMessageSend(channelID, "Ошибка назначения роли пидора дня")
 		if errM != nil {
-			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
 	}
 
 	return &event, nil
 }
 
+// TODO refactor this
 func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate) (*model.EventData, error) {
 	c.log.Info().Msg("[commands.Who]triggered")
 
@@ -166,6 +181,16 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 		}
 		err = fmt.Errorf("event not ended")
+		return nil, err
+	}
+
+	err = tease(discord, message.ChannelID)
+	if err != nil {
+		c.log.Error().Err(err).Msgf("[commands.Who]Error. Can't tease")
+		_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
+		if errM != nil {
+			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+		}
 		return nil, err
 	}
 
@@ -219,10 +244,10 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 		}
 	}
 
-	text := fmt.Sprintf("%s, ты пидор <:MumeiYou:1192139708222935050>", tools.UserIDToMention(player.UserID))
-	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
-	if errM != nil {
-		c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
+	err = resultMessage(discord, message.ChannelID, player.UserID)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.Who]error on channelMessageSend")
+		return nil, err
 	}
 
 	err = c.finishRoll(ctx, discord, data, player)
@@ -466,7 +491,7 @@ func (c *Commands) finishRoll(ctx context.Context, discord *discordgo.Session, d
 
 	if data.LastPidorRoleID == "" {
 		c.log.Debug().Msg("lastPidorRoleID not found")
-		role, err := roles.CreateRole(discord, newData.GuildID)
+		role, err := roles.CreateRole(discord, newData.GuildID, DefaultLastPiRoleName)
 		if err != nil {
 			c.log.Err(err).Msg("[commands.finishRoll]error on role creation")
 			return err
@@ -502,6 +527,27 @@ func (c *Commands) finishRoll(ctx context.Context, discord *discordgo.Session, d
 	}
 
 	return nil
+}
+
+func tease(discord *discordgo.Session, channelID string) error {
+	tease := content.GetRandomTeasePhrases()
+
+	for i, text := range tease {
+		time.Sleep(time.Second * time.Duration(int32(rand.Float64()*float64(i))))
+		if _, errM := discord.ChannelMessageSend(channelID, text); errM != nil {
+			return errM
+		}
+	}
+
+	return nil
+}
+
+func resultMessage(discord *discordgo.Session, channelID, userID string) error {
+	// get random result phrase and insert ping into it
+	text := fmt.Sprintf(content.GetRandomResultPhrase(), tools.UserIDToMention(userID))
+	time.Sleep(time.Second * 2)
+	_, err := discord.ChannelMessageSend(channelID, text)
+	return err
 }
 
 func getNickname(member *discordgo.Member) string {
