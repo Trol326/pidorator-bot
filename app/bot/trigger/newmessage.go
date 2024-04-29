@@ -2,7 +2,9 @@ package trigger
 
 import (
 	"context"
+	"fmt"
 	"pidorator-bot/app/bot/command"
+	"pidorator-bot/tools/roles"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -91,6 +93,46 @@ func (t *Trigger) OnNewMessage(discord *discordgo.Session, message *discordgo.Me
 	case strings.HasPrefix(message.Content, prefix+"botrename"):
 		if admin != nil {
 			admin.BotRename(ctx, discord, message)
+		}
+	case strings.HasPrefix(message.Content, prefix+"setprefix"):
+		if admin != nil {
+			// TODO refactor this later
+			result, err := roles.MemberHasPermission(discord, message.GuildID, message.Author.ID, discordgo.PermissionAdministrator)
+			if err != nil {
+				_, errM := discord.ChannelMessageSend(message.ChannelID, "Sorry, server-side error. Please contact the bot maintainer")
+				if errM != nil {
+					t.Log.Err(errM).Msg("[trigger.OnNewMessage]error on channelMessageSend")
+				}
+				return
+			}
+			if !result {
+				_, errM := discord.ChannelMessageSend(message.ChannelID, "У вас нет прав на использование этой команды")
+				if errM != nil {
+					t.Log.Err(errM).Msg("[trigger.OnNewMessage]error on channelMessageSend")
+				}
+				return
+			}
+			res, err := ParseCommand(prefix, message.Content)
+			if err != nil {
+				t.Log.Err(err).Msg("[trigger.OnNewMessage]error on message parsing")
+				text := fmt.Sprintf("Ошибка при парсинге. Пример использования команды: `%ssetprefix новыйПрефикс`, например, `%ssetprefix ?`", prefix, prefix)
+				_, errM := discord.ChannelMessageSend(message.ChannelID, text)
+				if errM != nil {
+					t.Log.Err(errM).Msg("[trigger.OnNewMessage]error on channelMessageSend")
+				}
+				return
+			}
+			if len(res) <= 2 {
+				t.Log.Err(err).Msg("[trigger.OnNewMessage]not enough arguments")
+				text := fmt.Sprintf("Ошибка при парсинге. Пример использования команды: `%ssetprefix новыйПрефикс`, например, `%ssetprefix ?`", prefix, prefix)
+				_, errM := discord.ChannelMessageSend(message.ChannelID, text)
+				if errM != nil {
+					t.Log.Err(errM).Msg("[trigger.OnNewMessage]error on channelMessageSend")
+				}
+				return
+			}
+			t.Log.Info().Msgf("Parsed result: %s", res[2])
+			admin.SetPrefix(ctx, discord, message, res[2])
 		}
 	default:
 		t.Log.Debug().Msg("Command not found")

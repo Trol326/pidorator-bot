@@ -17,11 +17,6 @@ func (t *Trigger) OnTimerEnded(ctx context.Context, discord *discordgo.Session, 
 	}
 
 	if timerType == database.GameEventName && GameEnabled {
-		text := "Время пришло. Пора выбирать пидора!"
-		_, err := discord.ChannelMessageSend(channelID, text)
-		if err != nil {
-			t.Log.Err(err).Msg("[trigger.OnTimerEnded]error on channelMessageSend")
-		}
 		event, err := t.commands.AutoRoll(ctx, discord, guildID, channelID)
 		if err != nil {
 			t.Log.Err(err).Msg("[trigger.OnTimerEnded]error on autoroll")

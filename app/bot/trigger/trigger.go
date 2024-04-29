@@ -1,9 +1,11 @@
 package trigger
 
 import (
+	"fmt"
 	"pidorator-bot/app/bot/command"
 	"pidorator-bot/app/database"
 	"pidorator-bot/tools/timer"
+	"regexp"
 
 	"github.com/rs/zerolog"
 )
@@ -22,4 +24,14 @@ func New(log *zerolog.Logger, db database.Database, masterTimer *timer.MasterTim
 		commands: c,
 		timers:   masterTimer,
 	}
+}
+
+func ParseCommand(prefix, command string) ([]string, error) {
+	p := regexp.QuoteMeta(prefix)
+	exp := fmt.Sprintf("(%s[a-z]* )(.*)", p)
+	regex, err := regexp.Compile(exp)
+	if err != nil {
+		return nil, err
+	}
+	return regex.FindStringSubmatch(command), nil
 }

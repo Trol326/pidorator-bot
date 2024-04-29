@@ -9,6 +9,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	ErrorNoPermission string = "HTTP 403 Forbidden, {\"message\": \"Missing Permissions\", \"code\": 50013}"
+	ErrorNoAccess     string = "HTTP 403 Forbidden, {\"message\": \"Missing Access\", \"code\": 50001}"
+)
+
 // Interface of commands for rolls
 type Game interface {
 	// main command for the game
@@ -38,6 +43,9 @@ type Game interface {
 type Admin interface {
 	// Changes bot global name
 	BotRename(сtx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate)
+
+	// Changes bot prefix for this server
+	SetPrefix(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate, newPrefix string)
 }
 
 // Contains bot command implementations
