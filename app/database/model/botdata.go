@@ -10,6 +10,8 @@ type BotData struct {
 	IsAutoRollEnabled bool   `bson:"isAutoRollEnabled"`
 	LastPidorUserID   string `bson:"lastPidorUserID"`
 	LastPidorRoleID   string `bson:"lastPidorRoleID"`
+	TopPidorUserID    string `bson:"topPidorUserID"`
+	TopPidorRoleID    string `bson:"topPidorRoleID"`
 }
 
 func (d *BotData) String() string {

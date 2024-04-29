@@ -16,6 +16,7 @@ import (
 
 const (
 	DefaultLastPiRoleName string = "Пидор дня"
+	DefaultTopPiRoleName  string = "Тот ещё пидор"
 )
 
 // TODO refactor and make autoroll and who same func
@@ -131,7 +132,7 @@ func (c *Commands) AutoRoll(ctx context.Context, discord *discordgo.Session, gui
 	err = c.finishRoll(ctx, discord, data, player)
 	if err != nil {
 		c.log.Err(err).Msg("[commands.AutoRoll]error. Can't finishRoll")
-		_, errM := discord.ChannelMessageSend(channelID, "Ошибка назначения роли пидора дня")
+		_, errM := discord.ChannelMessageSend(channelID, "Ошибка при назначении роли")
 		if errM != nil {
 			c.log.Err(errM).Msg("[commands.AutoRoll]error on channelMessageSend")
 		}
@@ -253,7 +254,7 @@ func (c *Commands) Who(ctx context.Context, discord *discordgo.Session, message 
 	err = c.finishRoll(ctx, discord, data, player)
 	if err != nil {
 		c.log.Err(err).Msg("[commands.Who]error. Can't finishRoll")
-		_, errM := discord.ChannelMessageSend(message.ChannelID, "Ошибка назначения роли пидора дня")
+		_, errM := discord.ChannelMessageSend(message.ChannelID, "Ошибка при назначении роли")
 		if errM != nil {
 			c.log.Err(errM).Msg("[commands.Who]error on channelMessageSend")
 		}
@@ -523,6 +524,81 @@ func (c *Commands) finishRoll(ctx context.Context, discord *discordgo.Session, d
 	err = c.db.ChangeBotData(ctx, &newData)
 	if err != nil {
 		c.log.Err(err).Msg("[commands.finishRoll]error on changeBotData")
+		return err
+	}
+
+	err = c.checkTop(ctx, discord, data)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.finishRoll]error on checkTop")
+		return err
+	}
+
+	return nil
+}
+
+func (c *Commands) checkTop(ctx context.Context, discord *discordgo.Session, data *model.BotData) error {
+	newData := *data
+
+	if data.TopPidorRoleID == "" {
+		c.log.Debug().Msg("topPidorRoleID not found")
+		role, err := roles.CreateRole(discord, newData.GuildID, DefaultTopPiRoleName)
+		if err != nil {
+			c.log.Err(err).Msg("[commands.checkTop]error on role creation")
+			return err
+		}
+		newData.TopPidorRoleID = role.ID
+	}
+
+	// TODO refactor, use errgroup
+	r, err := roles.GetRole(discord, newData.GuildID, newData.TopPidorRoleID)
+	if err != nil || r.ID == "" {
+		c.log.Err(err).Msg("[commands.checkTop]error. Can't get role")
+		return err
+	}
+
+	players, err := c.db.GetAllPlayers(ctx, data.GuildID, database.DcendingSorting)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.checkTop]error on get all players")
+		return err
+	}
+
+	isTwo := false
+	topPlayer := &model.PlayerData{}
+	for _, player := range players {
+		if player.Score >= topPlayer.Score {
+			if topPlayer.UserID != "" {
+				isTwo = true
+				break
+			}
+			topPlayer = player
+		}
+	}
+
+	if !isTwo && topPlayer.UserID == data.TopPidorUserID {
+		return nil
+	}
+
+	if data.TopPidorUserID != "" && data.TopPidorRoleID != "" {
+		err := roles.DeleteUserRole(discord, data.GuildID, data.TopPidorUserID, data.TopPidorRoleID)
+		if err != nil {
+			c.log.Err(err).Msg("[commands.checkTop]error on delete old top role")
+			return err
+		}
+		newData.TopPidorUserID = ""
+	}
+
+	if !isTwo {
+		err = roles.SetUserRole(discord, newData.GuildID, topPlayer.UserID, newData.TopPidorRoleID)
+		if err != nil {
+			c.log.Err(err).Msg("[commands.checkTop]error on SetUserRole")
+			return err
+		}
+		newData.TopPidorUserID = topPlayer.UserID
+	}
+
+	err = c.db.ChangeBotData(ctx, &newData)
+	if err != nil {
+		c.log.Err(err).Msg("[commands.checkTop]error on changeBotData")
 		return err
 	}
 
