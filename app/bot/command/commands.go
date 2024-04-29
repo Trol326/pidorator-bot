@@ -44,7 +44,7 @@ type Admin interface {
 	// Changes bot global name
 	BotRename(сtx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate)
 
-	// Changes bot prefix on this server
+	// Changes bot prefix for this server
 	SetPrefix(ctx context.Context, discord *discordgo.Session, message *discordgo.MessageCreate, newPrefix string)
 }
 

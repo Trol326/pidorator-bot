@@ -414,7 +414,7 @@ func (c *Commands) UpdatePlayersData(ctx context.Context, discord *discordgo.Ses
 
 	c.log.Debug().Msgf("[commands.UpdatePlayersData]Got %d players", len(allPlayers))
 
-	text := fmt.Sprintf("Обновляю данные %d игроков...", len(allPlayers))
+	text := fmt.Sprintf("Проверяю данные %d игроков...", len(allPlayers))
 	_, errM := discord.ChannelMessageSend(message.ChannelID, text)
 	if errM != nil {
 		c.log.Err(errM).Msg("[commands.UpdatePlayersData]error on channelMessageSend")
@@ -480,6 +480,8 @@ func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*model.
 	if err != nil {
 		return result, err
 	}
+
+	rand.Shuffle(len(players), func(i, j int) { players[i], players[j] = players[j], players[i] })
 
 	num := tools.GetRandomInt32(len(players))
 	result = players[num]
