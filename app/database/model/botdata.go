@@ -15,5 +15,5 @@ type BotData struct {
 }
 
 func (d *BotData) String() string {
-	return fmt.Sprintf("{GuildID: %s, GameChannelID: %s, BotPrefix: %s}", d.GuildID, d.GameChannelID, d.BotPrefix)
+	return fmt.Sprintf("{GuildID: %s, GameChannelID: %s, BotPrefix: %s, LastPiUID: %s, LastPiRole: %s}", d.GuildID, d.GameChannelID, d.BotPrefix, d.LastPidorUserID, d.LastPidorRoleID)
 }
