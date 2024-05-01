@@ -509,6 +509,7 @@ func (c *Commands) finishRoll(ctx context.Context, discord *discordgo.Session, d
 	}
 
 	if data.LastPidorUserID != "" && data.LastPidorRoleID != "" {
+		c.log.Debug().Msg("Deleting winner role...")
 		err := roles.DeleteUserRole(discord, data.GuildID, data.LastPidorUserID, data.LastPidorRoleID)
 		if err != nil {
 			c.log.Err(err).Msg("[commands.finishRoll]error on delete old winner role")
@@ -516,6 +517,7 @@ func (c *Commands) finishRoll(ctx context.Context, discord *discordgo.Session, d
 		}
 	}
 
+	c.log.Debug().Msg("Setting new winner role...")
 	err = roles.SetUserRole(discord, newData.GuildID, winner.UserID, newData.LastPidorRoleID)
 	if err != nil {
 		c.log.Err(err).Msg("[commands.finishRoll]error on SetUserRole")
@@ -529,7 +531,7 @@ func (c *Commands) finishRoll(ctx context.Context, discord *discordgo.Session, d
 		return err
 	}
 
-	err = c.checkTop(ctx, discord, data)
+	err = c.checkTop(ctx, discord, &newData)
 	if err != nil {
 		c.log.Err(err).Msg("[commands.finishRoll]error on checkTop")
 		return err
@@ -540,7 +542,6 @@ func (c *Commands) finishRoll(ctx context.Context, discord *discordgo.Session, d
 
 func (c *Commands) checkTop(ctx context.Context, discord *discordgo.Session, data *model.BotData) error {
 	newData := *data
-
 	if data.TopPidorRoleID == "" {
 		c.log.Debug().Msg("topPidorRoleID not found")
 		role, err := roles.CreateRole(discord, newData.GuildID, DefaultTopPiRoleName)
