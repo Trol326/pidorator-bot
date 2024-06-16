@@ -482,9 +482,10 @@ func (c *Commands) getRandomPlayer(ctx context.Context, guildID string) (*model.
 	}
 
 	rand.Shuffle(len(players), func(i, j int) { players[i], players[j] = players[j], players[i] })
-
+	c.log.Debug().Msgf("[game.getRandomPlayer]Shuffled players array: %+v", players)
 	num := tools.GetRandomInt32(len(players))
 	result = players[num]
+	c.log.Debug().Msgf("[game.getRandomPlayer]Result. Num = %d. Player = %v", num, result)
 
 	return result, nil
 }
